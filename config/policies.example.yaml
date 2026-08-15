@@ -1,0 +1,13 @@
+# Copy this file to policies.yaml (gitignored - it's operational data for
+# your specific deployment, not something to commit) and fill in real
+# connection ids.
+#
+# Loaded by the gateway (gateway/policy.py) on every command. Maps the
+# *home* agent's connection_id for a given remote party -> the entity_ids
+# (fnmatch patterns) that party is allowed to control. Find connection ids
+# with GET /connections on the home agent's admin API.
+connections: {}
+#   <home-side-connection_id>:
+#     allow:
+#       - light.guest_bedroom
+#       - switch.coffee_machine

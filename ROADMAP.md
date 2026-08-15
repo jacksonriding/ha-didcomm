@@ -43,11 +43,15 @@ toggle a Home Assistant helper through it."*
 
 ## v0.0.2 — Static authorization
 
-- [ ] Connection-based allowlist config (`config/policies.yaml`):
-      map `connection_id`/DID → allowed `entity_id`s
-- [ ] Gateway rejects commands for entities not in the caller's allowlist
-- [ ] Support more than one remote agent connected at once
-- [ ] Basic structured logging of allow/deny decisions
+**Status: done (2026-08-16).**
+
+- [x] Connection-based allowlist config (`config/policies.yaml`):
+      map `connection_id`/DID → allowed `entity_id`s (fnmatch patterns)
+- [x] Gateway rejects commands for entities not in the caller's allowlist
+- [x] Support more than one remote agent connected at once (allowlist keyed
+      by connection_id, one entry per connection)
+- [x] Basic structured logging of allow/deny decisions
+
 
 ## v0.0.3 — Verifiable credentials replace the static allowlist
 

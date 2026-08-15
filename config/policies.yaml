@@ -1,7 +1,0 @@
-# Not yet loaded by the gateway (see ROADMAP.md v0.0.2).
-# Reserved shape for connection/DID -> allowed entity_id mapping.
-connections: {}
-#   did:peer:4:z...alice:
-#     allow:
-#       - light.guest_bedroom
-#       - switch.coffee_machine
