@@ -1,0 +1,89 @@
+# Roadmap
+
+Guiding principle: don't touch Home Assistant internals, don't touch ACA-Py
+internals. Compose them through their existing REST/webhook APIs from a small
+gateway service. Add complexity one milestone at a time.
+
+Scope boundary — keep it here, don't creep further down the stack:
+
+```
+DID / DIDComm / VC
+        │
+Gateway (this repo) — authorization + translation
+        │
+Home Assistant REST/WebSocket API
+        │
+Zigbee / Matter / Wi-Fi / etc. (untouched)
+```
+
+## v0.0.1 — Prove the wire works
+
+**Goal:** *"By the end of v0.0.1, I can establish a DIDComm connection and
+toggle a Home Assistant helper through it."*
+
+**Status: done (2026-08-16).**
+
+- [x] `docker-compose.yml` running a single ACA-Py agent (`--admin-insecure-mode`
+      for local dev only, admin API bound to localhost)
+- [x] Second ACA-Py agent (or the ACA-Py demo agent) to act as the "remote user"
+- [x] Out-of-Band invitation + DID Exchange between the two agents using
+      `did:peer:4` (no ledger)
+- [x] Home Assistant instance reachable with a long-lived access token
+      (existing HA install, or a throwaway dev instance)
+- [x] `input_boolean.ssi_test` helper created in Home Assistant
+- [x] Gateway (`gateway/`) that:
+  - subscribes to ACA-Py webhooks
+  - receives a Basic Message: `{"action": "turn_on", "entity_id": "input_boolean.ssi_test"}`
+  - calls Home Assistant `POST /api/services/input_boolean/turn_on`
+- [x] No authorization logic yet — every connected agent is trusted
+- [x] Manual end-to-end test documented in `gateway/README.md`
+
+**Out of scope:** credentials, permissions, revocation, physical devices, any UI.
+
+
+## v0.0.2 — Static authorization
+
+- [ ] Connection-based allowlist config (`config/policies.yaml`):
+      map `connection_id`/DID → allowed `entity_id`s
+- [ ] Gateway rejects commands for entities not in the caller's allowlist
+- [ ] Support more than one remote agent connected at once
+- [ ] Basic structured logging of allow/deny decisions
+
+## v0.0.3 — Verifiable credentials replace the static allowlist
+
+- [ ] Define a `SmartHomeAccessCredential` schema (role, home id, permissions,
+      optional expiry)
+- [ ] Home agent issues credentials to remote agents via ACA-Py Issue
+      Credential 2.0
+- [ ] Gateway requests proof presentation (Present Proof 2.0) before acting on
+      a command instead of consulting the static allowlist
+- [ ] Expiry enforced (either credential-embedded or checked in the gateway)
+- [ ] Basic revocation check
+
+## v0.0.4 — Onboarding UX
+
+- [ ] QR code (OOB invitation) rendered somewhere accessible (CLI first, HA
+      dashboard card later) for adding a new guest connection
+- [ ] Simple CLI or minimal web UI in the gateway for the owner to:
+  - see connected agents
+  - issue a scoped/expiring credential to a connection
+  - revoke a credential/connection
+- [ ] `RPC`-style command schema instead of ad-hoc JSON over Basic Message
+      (evaluate the ACA-Py DIDComm RPC plugin here)
+
+## v0.0.5+ — Packaging for real Home Assistant users
+
+- [ ] Home Assistant Add-on (App) bundling ACA-Py + gateway, using the
+      Supervisor API proxy / `SUPERVISOR_TOKEN` so no manual API key setup
+- [ ] Standalone Docker Compose distribution for Home Assistant Container users
+- [ ] Proper Home Assistant custom integration with Config Flow, showing
+      connections/credentials as entities in the UI
+- [ ] Harden ACA-Py deployment: admin API key auth, TLS, no insecure mode
+- [ ] Multi-home / delegated access scenarios (guest visiting a different home)
+
+## Non-goals (for now)
+
+- Public ledger / blockchain-anchored DIDs
+- Making every individual Zigbee/Matter device SSI-aware
+- Mobile wallet app (rely on existing Aries-compatible wallets/agents)
+- Production-grade key management

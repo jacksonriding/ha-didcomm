@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  acapy-home:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    command: >
+      start
+      --label home-agent
+      --inbound-transport http 0.0.0.0 8000
+      --outbound-transport http
+      --admin 0.0.0.0 8021
+      --admin-insecure-mode
+      --webhook-url http://gateway:8080
+      --endpoint http://acapy-home:8000
+      --no-ledger
+      --wallet-type askar
+      --wallet-name home
+      --wallet-key change-me-dev-only
+      --auto-provision
+      --log-level info
+    ports:
+      - "8000:8000" # DIDComm inbound
+      - "8021:8021" # Admin API (dev only, not exposed beyond localhost)
+
+  gateway:
+    build: ./gateway
+    env_file:
+      - ./gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - acapy-home
+
+  # Represents the remote/user agent, for local dev/testing only.
+  acapy-user:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    command: >
+      start
+      --label user-agent
+      --inbound-transport http 0.0.0.0 8000
+      --outbound-transport http
+      --admin 0.0.0.0 8021
+      --admin-insecure-mode
+      --endpoint http://acapy-user:8000
+      --no-ledger
+      --wallet-type askar
+      --wallet-name user
+      --wallet-key change-me-dev-only
+      --auto-provision
+      --log-level info
+    ports:
+      - "8010:8000" # DIDComm inbound
+      - "8031:8021" # Admin API (dev only, not exposed beyond localhost)
+
