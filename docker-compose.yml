@@ -26,10 +26,6 @@ services:
     build: ./gateway
     env_file:
       - ./gateway/.env
-    environment:
-      - POLICY_FILE=/config/policies.yaml
-    volumes:
-      - ./config:/config:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -51,6 +47,8 @@ services:
       --wallet-name user
       --wallet-key change-me-dev-only
       --auto-provision
+      --auto-respond-credential-offer
+      --auto-store-credential
       --log-level info
     ports:
       - "8010:8000" # DIDComm inbound

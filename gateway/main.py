@@ -1,17 +1,19 @@
-"""ACA-Py webhook receiver -> policy check -> Home Assistant service call.
+"""ACA-Py webhook receiver -> verifiable-credential check -> Home Assistant service call.
 
-v0.0.1: handles the `basicmessages` webhook topic only. A message body is
-expected to be JSON: {"action": "turn_on", "entity_id": "input_boolean.ssi_test"}.
-The Home Assistant domain is derived from the entity_id prefix.
+v0.0.3: replaces the v0.0.2 static config/policies.yaml allowlist with real
+verifiable credentials issued to a connection (see credentials.py). A
+message body is expected to be JSON:
+{"action": "turn_on", "entity_id": "input_boolean.ssi_test"}.
 """
 import json
 import logging
 
 from fastapi import FastAPI, Request
 
+import acapy
 import config
+import credentials
 import home_assistant
-import policy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
@@ -24,12 +26,43 @@ async def health():
     return {"status": "ok"}
 
 
+@app.post("/admin/issue-credential")
+async def admin_issue_credential(request: Request):
+    """Dev-only: owner issues a SmartHomeAccessCredential to a connection.
+
+    subject_did must be a did:key the recipient's agent controls (e.g.
+    created via POST /wallet/did/create {"method": "key"} on their agent) --
+    connection-scoped sov/peer DIDs aren't resolvable for JSON-LD signing
+    without a ledger. Not authenticated -- do not expose this beyond
+    localhost/dev.
+    """
+    body = await request.json()
+    connection_id = body["connection_id"]
+    credential = credentials.build_credential(
+        subject_did=body["subject_did"],
+        issuer_did=config.HOME_ISSUER_DID,
+        role=body.get("role", "guest"),
+        permissions=body["permissions"],
+        expires_iso=body.get("expires"),
+    )
+    result = await acapy.issue_credential(connection_id, credential)
+    credentials.remember_issued(connection_id, credential)
+    return {"cred_ex_id": result.get("cred_ex_id")}
+
+
 @app.post("/topic/{topic}/")
 async def acapy_webhook(topic: str, request: Request):
     payload = await request.json()
 
-    if topic != "basicmessages" or payload.get("state") != "received":
-        return {"ignored": True}
+    if topic == "basicmessages":
+        await _handle_basic_message(payload)
+
+    return {"ok": True}
+
+
+async def _handle_basic_message(payload: dict) -> None:
+    if payload.get("state") != "received":
+        return
 
     connection_id = payload["connection_id"]
     try:
@@ -39,15 +72,14 @@ async def acapy_webhook(topic: str, request: Request):
         domain = entity_id.split(".", 1)[0]
     except (KeyError, ValueError, json.JSONDecodeError):
         logger.warning("Ignoring malformed command from %s: %r", connection_id, payload.get("content"))
-        return {"ignored": True}
+        return
 
-    if not policy.is_authorised(connection_id, entity_id):
+    if not credentials.is_authorised(connection_id, entity_id):
         logger.info("Denied %s -> %s for connection %s", action, entity_id, connection_id)
-        return {"authorised": False}
+        return
 
     await home_assistant.call_service(domain, action, entity_id)
     logger.info("Executed %s -> %s for connection %s", action, entity_id, connection_id)
-    return {"authorised": True}
 
 
 if __name__ == "__main__":

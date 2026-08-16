@@ -41,15 +41,17 @@ Remote Agent (user/guest)
 ```
 
 The gateway is a small Python service that:
-1. Receives ACA-Py webhook events (new connections, messages, proof presentations)
-2. Enforces authorization policy (static allowlist → credential-based later)
+1. Receives ACA-Py webhook events (new connections, messages, credential issuance)
+2. Enforces authorization policy (verifiable credentials issued per connection)
 3. Translates authorized commands into Home Assistant REST API calls
 
 ## Status
 
-v0.0.1 done: a DIDComm connection between two ACA-Py agents (`did:peer`, no
-ledger) can toggle a Home Assistant helper entity through the gateway. See
-[ROADMAP.md](ROADMAP.md) for the full milestone plan and what's next.
+v0.0.3 done: a DIDComm connection between two ACA-Py agents (`did:peer`, no
+ledger) can toggle a Home Assistant helper entity, gated by a verifiable
+credential (JSON-LD, no ledger) the home issues to that connection. See
+[ROADMAP.md](ROADMAP.md) for the full milestone plan, a known limitation
+around live credential-possession proofs, and what's next.
 
 ## Getting started (dev)
 

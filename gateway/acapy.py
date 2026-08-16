@@ -17,3 +17,21 @@ async def send_basic_message(connection_id: str, content: str) -> None:
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json={"content": content}, headers=_headers())
         response.raise_for_status()
+
+
+async def issue_credential(connection_id: str, credential: dict) -> dict:
+    """Issue a JSON-LD verifiable credential (no ledger/schema registration needed)."""
+    url = f"{config.ACAPY_ADMIN_URL}/issue-credential-2.0/send"
+    body = {
+        "connection_id": connection_id,
+        "filter": {
+            "ld_proof": {
+                "credential": credential,
+                "options": {"proofType": "Ed25519Signature2018"},
+            }
+        },
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=body, headers=_headers())
+        response.raise_for_status()
+        return response.json()

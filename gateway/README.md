@@ -3,7 +3,7 @@
 The `ha-didcomm` gateway: receives ACA-Py webhook events, checks authorization
 policy, and translates authorized commands into Home Assistant service calls.
 
-## v0.0.1 manual test (verified working)
+## Setup
 
 From the repo root:
 
@@ -17,10 +17,10 @@ This starts `acapy-home` (admin API on :8021, inbound on :8000), `acapy-user`
 
 - Copy `gateway/.env.example` to `gateway/.env` and fill in your Home
   Assistant `HA_BASE_URL` and a long-lived access token (`HA_TOKEN`).
-- Copy `config/policies.example.yaml` to `config/policies.yaml`. Both
-  `gateway/.env` and `config/policies.yaml` are gitignored — they're
-  deployment-specific, not committed.
+  `gateway/.env` is gitignored — it's deployment-specific, not committed.
 - Create an `input_boolean.ssi_test` helper in Home Assistant.
+
+## v0.0.1 manual test: connect two agents and toggle a helper
 
 1. Create an OOB invitation on the home agent:
 
@@ -59,34 +59,45 @@ The gateway logs should show it executed the command
 (`docker compose logs gateway`), and `input_boolean.ssi_test` should turn on
 in Home Assistant.
 
-## v0.0.2: authorization allowlist (verified working)
+## v0.0.3: verifiable-credential authorization (verified working)
 
-`policy.py` now enforces `config/policies.yaml` (copy from
-`config/policies.example.yaml`), mounted read-only into the container at
-`/config/policies.yaml` (see `docker-compose.yml`). It maps the **home**
-agent's `connection_id` for a given remote party to the `entity_id` fnmatch
-patterns that party is allowed to control:
+There's no static allowlist anymore. Instead, the home issues a
+`SmartHomeAccessCredential` (a JSON-LD/`ld_proof` verifiable credential, no
+ledger needed) to a connection, and the gateway checks that credential's
+`permissions`/`expirationDate` before executing a command. See
+`gateway/credentials.py` for the credential shape and check logic, and
+`ROADMAP.md` for a known limitation (live Present Proof possession checks
+aren't wired up yet — see below).
 
-```yaml
-connections:
-  <home-side-connection_id>:
-    allow:
-      - input_boolean.ssi_test
-      - light.guest_room*
-```
+1. Both agents need a stable `did:key` identity (separate from their
+   pairwise connection DID) for issuing/holding JSON-LD credentials:
 
-Find the home agent's connection id for a given remote party with
-`GET http://localhost:8021/connections`. Any command for a `connection_id` /
-`entity_id` combination not covered by an `allow` pattern is denied — the
-gateway logs `Denied <action> -> <entity_id> for connection <id>` and does
-**not** call Home Assistant.
+   ```powershell
+   $homeKey = Invoke-RestMethod -Uri "http://localhost:8021/wallet/did/create" -Method Post -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
+   $userKey = Invoke-RestMethod -Uri "http://localhost:8031/wallet/did/create" -Method Post -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
+   ```
 
-To test: send an allowed command (as in the v0.0.1 test above) and confirm it
-executes; then send a command for an entity not in the allowlist (e.g.
-`light.does_not_exist`) and confirm the gateway logs a denial with no
-corresponding Home Assistant REST call.
+   Put the home's did:key in `gateway/.env` as `HOME_ISSUER_DID`, and restart
+   the gateway (`docker compose up -d gateway`) so it picks up the change.
 
-The policy file is re-read on every request, so editing
-`config/policies.yaml` takes effect immediately without restarting the
-gateway.
+2. Issue a credential to a connection, granting access to specific entities:
+
+   ```powershell
+   $issueBody = @{
+     connection_id = "<home-side-connection_id>"
+     subject_did   = $userKey.result.did
+     role          = "guest"
+     permissions   = @("input_boolean.ssi_test")
+     # expires     = "2026-08-18T11:00:00Z"  # optional
+   } | ConvertTo-Json -Compress
+   Invoke-RestMethod -Uri "http://localhost:8080/admin/issue-credential" -Method Post -ContentType "application/json" -Body $issueBody
+   ```
+
+3. Send commands as in the v0.0.1 test. A command for an `entity_id` covered
+   by an issued, non-expired credential's `permissions` executes; anything
+   else is denied and logged (`Denied <action> -> <entity_id> for connection
+   <id>`) with no Home Assistant call made.
+
+Note: the credential store (`credentials.ISSUED`) is in-memory and is lost
+when the gateway restarts — re-issue credentials after a restart if testing.
 

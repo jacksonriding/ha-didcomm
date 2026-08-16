@@ -55,14 +55,45 @@ toggle a Home Assistant helper through it."*
 
 ## v0.0.3 — Verifiable credentials replace the static allowlist
 
-- [ ] Define a `SmartHomeAccessCredential` schema (role, home id, permissions,
-      optional expiry)
-- [ ] Home agent issues credentials to remote agents via ACA-Py Issue
-      Credential 2.0
-- [ ] Gateway requests proof presentation (Present Proof 2.0) before acting on
-      a command instead of consulting the static allowlist
-- [ ] Expiry enforced (either credential-embedded or checked in the gateway)
+**Status: mostly done (2026-08-16) — see known limitation below.**
+
+- [x] Define a `SmartHomeAccessCredential` schema (role, home id, permissions,
+      optional expiry) as a JSON-LD (`ld_proof`) credential, so no ledger or
+      schema registration is needed
+- [x] Home agent issues credentials to remote agents via ACA-Py Issue
+      Credential 2.0 (`gateway/credentials.py` + `POST /admin/issue-credential`)
+- [x] Expiry enforced in the gateway (`credentials.py::_is_expired`)
+- [x] Permission matching by fnmatch pattern against `credentialSubject.permissions`
+- [x] Manually tested: allowed entity executes, disallowed entity denied,
+      expired credential denied
+
+**Known limitation — deferred:** the original design asked the remote party
+to *prove current possession* of the credential per-command via ACA-Py's
+Present Proof 2.0 (DIF Presentation Exchange + LD-proof signing). That hit a
+real bug/limitation in ACA-Py 1.6: `DIFPresFormatHandler.create_pres` always
+passes `is_holder_override=True`, which makes `DIFPresExchHandler.create_vp`
+ignore any explicit `issuer_id` and re-derive the signing DID itself via
+`get_sign_key_credential_subject_id` — that derivation didn't reliably
+resolve our `did:key` credential subjects, so presentations came back
+unsigned (`verified: false`, `"presentation must contain proof"`), both with
+`--auto-respond-presentation-request` and with a manual
+`send-presentation` call including an explicit `issuer_id`.
+
+Current behaviour instead: the gateway (as issuer) remembers which
+credentials it issued to which connection in memory
+(`credentials.ISSUED`), and checks *those* for expiry/permissions on each
+command. This is still real VC issuance over DIDComm, just without a live
+possession proof per action. Revisit in a later milestone — options to
+investigate: a newer/older ACA-Py version, the `anoncreds-2023`/`vc_di`
+presentation path instead of `dif`/`ld_proof`, or a mediator-free direct
+`BasicMessage`-transported credential handoff the gateway verifies itself
+with a local JSON-LD signature library instead of ACA-Py's present-proof
+pipeline.
+
+- [ ] Live Present Proof-based possession verification (deferred, see above)
+- [ ] Persist issued credentials (currently in-memory, lost on gateway restart)
 - [ ] Basic revocation check
+
 
 ## v0.0.4 — Onboarding UX
 
