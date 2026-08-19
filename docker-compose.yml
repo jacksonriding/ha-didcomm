@@ -19,9 +19,13 @@ services:
     ports:
       - "8000:8000" # DIDComm inbound
       - "8021:8021" # Admin API (dev only, not exposed beyond localhost)
+    volumes:
+      - acapy-home-wallet:/home/aries/.acapy_agent/wallet
 
   gateway:
-    build: ./gateway
+    build:
+      context: ./gateway
+      target: gateway
     env_file:
       - ./gateway/.env
     environment:
@@ -55,7 +59,11 @@ services:
     ports:
       - "8010:8000" # DIDComm inbound
       - "8031:8021" # Admin API (dev only, not exposed beyond localhost)
+    volumes:
+      - acapy-user-wallet:/home/aries/.acapy_agent/wallet
 
 volumes:
+  acapy-home-wallet:
+  acapy-user-wallet:
   gateway-data:
 

@@ -20,6 +20,10 @@ This starts `acapy-home` (admin API on :8021, inbound on :8000), `acapy-user`
   `gateway/.env` is gitignored — it's deployment-specific, not committed.
 - Create an `input_boolean.ssi_test` helper in Home Assistant.
 
+The Compose agents and gateway use named volumes for their wallets and
+credential database. Container recreation therefore preserves connections,
+keys, and issued access records.
+
 ## v0.0.1 manual test: connect two agents and toggle a helper
 
 1. Create an OOB invitation on the home agent:

@@ -79,9 +79,9 @@ unsigned (`verified: false`, `"presentation must contain proof"`), both with
 `--auto-respond-presentation-request` and with a manual
 `send-presentation` call including an explicit `issuer_id`.
 
-Current behaviour instead: the gateway (as issuer) remembers which
-credentials it issued to which connection in memory
-(`credentials.ISSUED`), and checks *those* for expiry/permissions on each
+Current behaviour instead: the gateway (as issuer) persistently records which
+credentials it issued to which connection in SQLite, and checks those for
+expiry, revocation, and permissions on each
 command. This is still real VC issuance over DIDComm, just without a live
 possession proof per action. Revisit in a later milestone — options to
 investigate: a newer/older ACA-Py version, the `anoncreds-2023`/`vc_di`
@@ -111,7 +111,7 @@ pipeline.
 
 ## v0.0.5+ — Packaging for real Home Assistant users
 
-- [ ] Home Assistant Add-on (App) bundling ACA-Py + gateway, using the
+- [x] Experimental Home Assistant Add-on (App) bundling ACA-Py + gateway, using the
       Supervisor API proxy / `SUPERVISOR_TOKEN` so no manual API key setup
 - [ ] Standalone Docker Compose distribution for Home Assistant Container users
 - [ ] Proper Home Assistant custom integration with Config Flow, showing

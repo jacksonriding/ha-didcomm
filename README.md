@@ -57,3 +57,19 @@ around live credential-possession proofs.
 
 See [ROADMAP.md](ROADMAP.md) for milestones and [gateway/README.md](gateway/README.md)
 for the gateway service itself, including the manual v0.0.1 test steps.
+
+## Home Assistant app (experimental)
+
+Home Assistant OS and Supervised users can add this repository to the app
+store:
+
+```text
+https://github.com/jacksonriding/ha-didcomm
+```
+
+Install **ha-didcomm**, set `public_endpoint` to a URL that remote agents can
+reach on port 8000, and start the app. The app bundles ACA-Py and the gateway,
+stores identity data under the Supervisor-managed `/data` volume, and uses the
+Home Assistant API proxy with `SUPERVISOR_TOKEN`. It does not require a
+long-lived Home Assistant token. See [gateway/DOCS.md](gateway/DOCS.md) for
+configuration and security notes.
