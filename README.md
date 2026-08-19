@@ -73,3 +73,7 @@ stores identity data under the Supervisor-managed `/data` volume, and uses the
 Home Assistant API proxy with `SUPERVISOR_TOKEN`. It does not require a
 long-lived Home Assistant token. See [gateway/DOCS.md](gateway/DOCS.md) for
 configuration and security notes.
+
+Home Assistant Container users can instead use
+[compose.standalone.yml](compose.standalone.yml); see
+[STANDALONE.md](STANDALONE.md) for setup, persistence, and owner commands.

@@ -113,7 +113,7 @@ pipeline.
 
 - [x] Experimental Home Assistant Add-on (App) bundling ACA-Py + gateway, using the
       Supervisor API proxy / `SUPERVISOR_TOKEN` so no manual API key setup
-- [ ] Standalone Docker Compose distribution for Home Assistant Container users
+- [x] Standalone Docker Compose distribution for Home Assistant Container users
 - [ ] Proper Home Assistant custom integration with Config Flow, showing
       connections/credentials as entities in the UI
 - [ ] Harden ACA-Py deployment: admin API key auth, TLS, no insecure mode

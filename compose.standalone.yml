@@ -1,0 +1,84 @@
+services:
+  wallet-init:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    user: root
+    entrypoint:
+      - sh
+      - -c
+    command:
+      - chown -R 1001:1001 /wallet
+    volumes:
+      - acapy-wallet:/wallet
+    restart: "no"
+
+  acapy:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    command: >
+      start
+      --label ${ACAPY_LABEL:-ha-didcomm-home}
+      --inbound-transport http 0.0.0.0 8000
+      --outbound-transport http
+      --admin 0.0.0.0 8021
+      --admin-insecure-mode
+      --webhook-url http://gateway:8080
+      --endpoint ${ACAPY_PUBLIC_ENDPOINT:?Set ACAPY_PUBLIC_ENDPOINT in .env.standalone}
+      --no-ledger
+      --wallet-type askar
+      --wallet-name home
+      --wallet-key ${ACAPY_WALLET_KEY:?Set ACAPY_WALLET_KEY in .env.standalone}
+      --auto-provision
+      --log-level ${LOG_LEVEL:-info}
+    ports:
+      - "${DIDCOMM_PORT:-8000}:8000"
+    volumes:
+      - acapy-wallet:/home/aries/.acapy_agent/wallet
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from urllib.request import urlopen; urlopen('http://127.0.0.1:8021/status/live', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      wallet-init:
+        condition: service_completed_successfully
+
+  gateway:
+    build:
+      context: ./gateway
+      target: gateway
+    environment:
+      ACAPY_ADMIN_URL: http://acapy:8021
+      CREDENTIAL_STORE_PATH: /data/credentials.sqlite3
+      HA_BASE_URL: ${HA_BASE_URL:?Set HA_BASE_URL in .env.standalone}
+      HA_TOKEN: ${HA_TOKEN:?Set HA_TOKEN in .env.standalone}
+      HOME_ID: ${HOME_ID:-home}
+      HOME_ISSUER_DID: ${HOME_ISSUER_DID:?Set HOME_ISSUER_DID in .env.standalone}
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: 8080
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - gateway-data:/data
+    depends_on:
+      acapy:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  acapy-wallet:
+  gateway-data:

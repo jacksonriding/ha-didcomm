@@ -1,4 +1,22 @@
 services:
+  acapy-home-wallet-init:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    user: root
+    entrypoint: ["sh", "-c"]
+    command: ["chown -R 1001:1001 /wallet"]
+    volumes:
+      - acapy-home-wallet:/wallet
+    restart: "no"
+
+  acapy-user-wallet-init:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    user: root
+    entrypoint: ["sh", "-c"]
+    command: ["chown -R 1001:1001 /wallet"]
+    volumes:
+      - acapy-user-wallet:/wallet
+    restart: "no"
+
   acapy-home:
     image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
     command: >
@@ -21,6 +39,9 @@ services:
       - "8021:8021" # Admin API (dev only, not exposed beyond localhost)
     volumes:
       - acapy-home-wallet:/home/aries/.acapy_agent/wallet
+    depends_on:
+      acapy-home-wallet-init:
+        condition: service_completed_successfully
 
   gateway:
     build:
@@ -61,6 +82,9 @@ services:
       - "8031:8021" # Admin API (dev only, not exposed beyond localhost)
     volumes:
       - acapy-user-wallet:/home/aries/.acapy_agent/wallet
+    depends_on:
+      acapy-user-wallet-init:
+        condition: service_completed_successfully
 
 volumes:
   acapy-home-wallet:
