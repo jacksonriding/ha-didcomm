@@ -27,7 +27,8 @@ Home Assistant account.
 - Verifiable credentials as the authorization mechanism
 - Home Assistant as the thing actually being controlled
 
-See [ROADMAP.md](ROADMAP.md) for the implementation plan and current status.
+See [the roadmap](docs/ROADMAP.md) for the implementation plan and current
+status.
 
 ## Architecture (target)
 
@@ -47,16 +48,15 @@ The gateway is a small Python service that:
 
 ## Status
 
-v0.0.3 authorization is implemented, including persistent credentials and
-issuer-side revocation. Work on v0.0.4 onboarding has started with a CLI that
-creates an ACA-Py OOB invitation and renders it as a terminal QR code. See
-[ROADMAP.md](ROADMAP.md) for the full milestone plan and the known limitation
-around live credential-possession proofs.
+Authorization, revocation, onboarding, JSON-RPC commands, and experimental
+Home Assistant packaging are implemented. See [the roadmap](docs/ROADMAP.md)
+for the current milestone and the known limitation around live
+credential-possession proofs.
 
 ## Getting started (dev)
 
-See [ROADMAP.md](ROADMAP.md) for milestones and [gateway/README.md](gateway/README.md)
-for the gateway service itself, including the manual v0.0.1 test steps.
+See [the roadmap](docs/ROADMAP.md) for milestones and the
+[gateway guide](docs/GATEWAY.md) for local development and owner commands.
 
 ## Home Assistant app (experimental)
 
@@ -76,4 +76,16 @@ configuration and security notes.
 
 Home Assistant Container users can instead use
 [compose.standalone.yml](compose.standalone.yml); see
-[STANDALONE.md](STANDALONE.md) for setup, persistence, and owner commands.
+[standalone guide](docs/STANDALONE.md) for setup, persistence, and owner
+commands.
+
+## Repository layout
+
+```text
+docs/                    Project, gateway, and deployment documentation
+gateway/config.yaml      Home Assistant app metadata
+gateway/src/ha_didcomm/  Python gateway package
+gateway/tests/           Automated gateway tests
+compose.yml              Local two-agent development stack
+compose.standalone.yml   Standalone deployment stack
+```

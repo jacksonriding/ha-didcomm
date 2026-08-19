@@ -99,7 +99,7 @@ def main() -> int:
                 sys.executable,
                 "-m",
                 "uvicorn",
-                "main:app",
+                "ha_didcomm.main:app",
                 "--host",
                 "127.0.0.1",
                 "--port",

@@ -5,9 +5,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY src/ha_didcomm ./ha_didcomm
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "ha_didcomm.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
 FROM ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts AS addon
 
@@ -17,7 +17,7 @@ WORKDIR /app/gateway
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY src/ha_didcomm ./ha_didcomm
 
 ARG BUILD_VERSION=dev
 ARG BUILD_ARCH=amd64
@@ -26,4 +26,4 @@ LABEL \
     io.hass.type="app" \
     io.hass.arch="${BUILD_ARCH}"
 
-ENTRYPOINT ["python", "addon.py"]
+ENTRYPOINT ["python", "-m", "ha_didcomm.addon"]

@@ -2,11 +2,11 @@ import io
 import unittest
 from unittest.mock import AsyncMock, patch
 
-import cli
+from ha_didcomm import cli
 
 
 class OnboardingCliTests(unittest.TestCase):
-    @patch("cli.acapy.create_oob_invitation", new_callable=AsyncMock)
+    @patch("ha_didcomm.cli.acapy.create_oob_invitation", new_callable=AsyncMock)
     def test_invite_prints_qr_and_url(self, create_invitation):
         invitation_url = "https://home.example/invite?oob=encoded-invitation"
         create_invitation.return_value = {"invitation_url": invitation_url}
@@ -22,7 +22,7 @@ class OnboardingCliTests(unittest.TestCase):
             label="Jackson home", multi_use=False, auto_accept=True
         )
 
-    @patch("cli.acapy.create_oob_invitation", new_callable=AsyncMock)
+    @patch("ha_didcomm.cli.acapy.create_oob_invitation", new_callable=AsyncMock)
     def test_invite_options_are_forwarded(self, create_invitation):
         create_invitation.return_value = {"invitation_url": "https://example.test/oob"}
 
@@ -42,7 +42,7 @@ class OnboardingCliTests(unittest.TestCase):
         self.assertTrue(lines[0].isspace())
         self.assertTrue(lines[-1].isspace())
 
-    @patch("cli.acapy.list_connections", new_callable=AsyncMock)
+    @patch("ha_didcomm.cli.acapy.list_connections", new_callable=AsyncMock)
     def test_connections_lists_owner_relevant_fields(self, list_connections):
         list_connections.return_value = [
             {
@@ -59,7 +59,7 @@ class OnboardingCliTests(unittest.TestCase):
 
         self.assertIn("connection-1\tcompleted\tAlice\tdid:peer:4alice", output.getvalue())
 
-    @patch("cli.owner.issue_access_credential", new_callable=AsyncMock)
+    @patch("ha_didcomm.cli.owner.issue_access_credential", new_callable=AsyncMock)
     def test_issue_accepts_multiple_permission_patterns(self, issue_credential):
         issue_credential.return_value = "exchange-1"
         output = io.StringIO()
@@ -88,7 +88,7 @@ class OnboardingCliTests(unittest.TestCase):
         )
         self.assertIn("exchange-1", output.getvalue())
 
-    @patch("cli.credentials.revoke_credential", return_value=True)
+    @patch("ha_didcomm.cli.credentials.revoke_credential", return_value=True)
     def test_revoke_credential_reports_success(self, revoke_credential):
         output = io.StringIO()
 

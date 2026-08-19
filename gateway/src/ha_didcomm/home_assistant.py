@@ -1,7 +1,7 @@
 """Thin client for the Home Assistant REST API."""
 import httpx
 
-import config
+from . import config
 
 
 async def call_service(domain: str, service: str, entity_id: str) -> None:

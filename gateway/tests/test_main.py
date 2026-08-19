@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-import config
-import credentials
-import main
+from ha_didcomm import config
+from ha_didcomm import credentials
+from ha_didcomm import main
 
 
 class RevocationEndpointTests(unittest.TestCase):
@@ -48,8 +48,8 @@ class RevocationEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(missing.status_code, 404)
 
-    @patch("main.acapy.send_basic_message", new_callable=AsyncMock)
-    @patch("main.home_assistant.call_service", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)
     def test_rpc_command_executes_and_replies(self, call_service, send_message):
         credentials.remember_issued("connection-1", self.credential, "exchange-1")
         request = {
@@ -73,8 +73,8 @@ class RevocationEndpointTests(unittest.TestCase):
         response = json.loads(send_message.await_args.args[1])
         self.assertTrue(response["result"]["executed"])
 
-    @patch("main.acapy.send_basic_message", new_callable=AsyncMock)
-    @patch("main.home_assistant.call_service", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)
     def test_unauthorised_rpc_command_returns_error(self, call_service, send_message):
         request = {
             "jsonrpc": "2.0",

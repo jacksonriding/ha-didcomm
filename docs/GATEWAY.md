@@ -70,9 +70,9 @@ There's no static allowlist anymore. Instead, the home issues a
 `SmartHomeAccessCredential` (a JSON-LD/`ld_proof` verifiable credential, no
 ledger needed) to a connection, and the gateway checks that credential's
 `permissions`/`expirationDate` before executing a command. See
-`gateway/credentials.py` for the credential shape and check logic, and
-`ROADMAP.md` for a known limitation (live Present Proof possession checks
-aren't wired up yet — see below).
+`gateway/src/ha_didcomm/credentials.py` for the credential shape and check
+logic, and `docs/ROADMAP.md` for a known limitation (live Present Proof
+possession checks aren't wired up yet — see below).
 
 1. Both agents need a stable `did:key` identity (separate from their
    pairwise connection DID) for issuing/holding JSON-LD credentials:
@@ -133,7 +133,7 @@ environment.
 Create a single-use OOB invitation and render it in the terminal:
 
 ```powershell
-docker compose run --rm gateway python cli.py invite --label "My home"
+docker compose run --rm gateway python -m ha_didcomm.cli invite --label "My home"
 ```
 
 The CLI prints both a QR code and the underlying invitation URL. Connections
@@ -159,14 +159,14 @@ docker compose up -d --force-recreate acapy-home
 List connections known to the home agent:
 
 ```powershell
-docker compose run --rm gateway python cli.py connections
+docker compose run --rm gateway python -m ha_didcomm.cli connections
 ```
 
 Issue a credential. Repeat `--permission` for each allowed entity or pattern;
 `--expires` is optional and accepts an ISO 8601 timestamp:
 
 ```powershell
-docker compose run --rm gateway python cli.py issue `
+docker compose run --rm gateway python -m ha_didcomm.cli issue `
   <connection_id> <subject_did> `
   --role guest `
   --permission "light.guest_*" `
@@ -178,8 +178,10 @@ The command prints the credential exchange id. Use it to revoke that one
 credential, or revoke every credential belonging to a connection:
 
 ```powershell
-docker compose run --rm gateway python cli.py revoke-credential <cred_ex_id>
-docker compose run --rm gateway python cli.py revoke-connection <connection_id>
+docker compose run --rm gateway python -m ha_didcomm.cli `
+  revoke-credential <cred_ex_id>
+docker compose run --rm gateway python -m ha_didcomm.cli `
+  revoke-connection <connection_id>
 ```
 
 These owner commands operate directly against ACA-Py and the gateway's

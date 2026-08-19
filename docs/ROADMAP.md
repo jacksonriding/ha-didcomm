@@ -23,7 +23,7 @@ toggle a Home Assistant helper through it."*
 
 **Status: done (2026-08-16).**
 
-- [x] `docker-compose.yml` running a single ACA-Py agent (`--admin-insecure-mode`
+- [x] `compose.yml` running a single ACA-Py agent (`--admin-insecure-mode`
       for local dev only, admin API bound to localhost)
 - [x] Second ACA-Py agent (or the ACA-Py demo agent) to act as the "remote user"
 - [x] Out-of-Band invitation + DID Exchange between the two agents using
@@ -36,7 +36,7 @@ toggle a Home Assistant helper through it."*
   - receives a Basic Message: `{"action": "turn_on", "entity_id": "input_boolean.ssi_test"}`
   - calls Home Assistant `POST /api/services/input_boolean/turn_on`
 - [x] No authorization logic yet — every connected agent is trusted
-- [x] Manual end-to-end test documented in `gateway/README.md`
+- [x] Manual end-to-end test documented in `docs/GATEWAY.md`
 
 **Out of scope:** credentials, permissions, revocation, physical devices, any UI.
 
@@ -61,7 +61,8 @@ toggle a Home Assistant helper through it."*
       optional expiry) as a JSON-LD (`ld_proof`) credential, so no ledger or
       schema registration is needed
 - [x] Home agent issues credentials to remote agents via ACA-Py Issue
-      Credential 2.0 (`gateway/credentials.py` + `POST /admin/issue-credential`)
+      Credential 2.0 (`gateway/src/ha_didcomm/credentials.py` +
+      `POST /admin/issue-credential`)
 - [x] Expiry enforced in the gateway (`credentials.py::_is_expired`)
 - [x] Permission matching by fnmatch pattern against `credentialSubject.permissions`
 - [x] Manually tested: allowed entity executes, disallowed entity denied,

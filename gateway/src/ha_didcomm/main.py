@@ -11,12 +11,12 @@ import httpx
 
 from fastapi import FastAPI, HTTPException, Request
 
-import acapy
-import config
-import credentials
-import home_assistant
-import owner
-import rpc
+from . import acapy
+from . import config
+from . import credentials
+from . import home_assistant
+from . import owner
+from . import rpc
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")

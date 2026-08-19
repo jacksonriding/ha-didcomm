@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import config
-import credentials
-import owner
+from ha_didcomm import config
+from ha_didcomm import credentials
+from ha_didcomm import owner
 
 
 class OwnerOperationsTests(unittest.IsolatedAsyncioTestCase):
@@ -23,7 +23,7 @@ class OwnerOperationsTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.store_patch.stop)
         self.addCleanup(self.issuer_patch.stop)
 
-    @patch("owner.acapy.issue_credential", new_callable=AsyncMock)
+    @patch("ha_didcomm.owner.acapy.issue_credential", new_callable=AsyncMock)
     async def test_issue_persists_credential_after_acapy_accepts(self, issue_credential):
         issue_credential.return_value = {"cred_ex_id": "exchange-1"}
 

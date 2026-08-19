@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
-import acapy
-import config
+from ha_didcomm import acapy
+from ha_didcomm import config
 
 
 class AcapyInvitationTests(unittest.IsolatedAsyncioTestCase):
-    @patch("acapy.httpx.AsyncClient")
+    @patch("ha_didcomm.acapy.httpx.AsyncClient")
     async def test_create_oob_invitation_uses_peer_did_and_did_exchange(self, client_type):
         client = AsyncMock()
         client_type.return_value.__aenter__.return_value = client
@@ -33,7 +33,7 @@ class AcapyInvitationTests(unittest.IsolatedAsyncioTestCase):
         )
         response.raise_for_status.assert_called_once_with()
 
-    @patch("acapy.httpx.AsyncClient")
+    @patch("ha_didcomm.acapy.httpx.AsyncClient")
     async def test_create_oob_invitation_rejects_missing_url(self, client_type):
         client = AsyncMock()
         client_type.return_value.__aenter__.return_value = client
@@ -44,7 +44,7 @@ class AcapyInvitationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "invitation_url"):
             await acapy.create_oob_invitation()
 
-    @patch("acapy.httpx.AsyncClient")
+    @patch("ha_didcomm.acapy.httpx.AsyncClient")
     async def test_list_connections_returns_records(self, client_type):
         client = AsyncMock()
         client_type.return_value.__aenter__.return_value = client

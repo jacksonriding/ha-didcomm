@@ -7,9 +7,9 @@ from collections.abc import Sequence
 import httpx
 import qrcode
 
-import acapy
-import credentials
-import owner
+from . import acapy
+from . import credentials
+from . import owner
 
 
 def render_terminal_qr(data: str) -> str:

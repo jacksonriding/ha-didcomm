@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import addon
+from ha_didcomm import addon
 
 
 class AddonTests(unittest.TestCase):

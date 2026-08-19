@@ -1,7 +1,7 @@
 """Thin client for the parts of the ACA-Py Admin API the gateway needs."""
 import httpx
 
-import config
+from . import config
 
 
 def _headers() -> dict:

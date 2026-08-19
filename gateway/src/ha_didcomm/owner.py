@@ -1,7 +1,7 @@
 """Owner operations shared by the HTTP API and command line interface."""
-import acapy
-import config
-import credentials
+from . import acapy
+from . import config
+from . import credentials
 
 
 async def issue_access_credential(

@@ -38,11 +38,13 @@ docker compose --env-file .env.standalone -f compose.standalone.yml ps
 ## Owner commands
 
 ```powershell
-docker compose --env-file .env.standalone -f compose.standalone.yml run --rm gateway python cli.py invite --label "My home"
-docker compose --env-file .env.standalone -f compose.standalone.yml run --rm gateway python cli.py connections
+docker compose --env-file .env.standalone -f compose.standalone.yml `
+  run --rm gateway python -m ha_didcomm.cli invite --label "My home"
+docker compose --env-file .env.standalone -f compose.standalone.yml `
+  run --rm gateway python -m ha_didcomm.cli connections
 ```
 
-See [gateway/README.md](gateway/README.md) for credential issuance and
+See [the gateway guide](GATEWAY.md) for credential issuance and
 revocation commands. Add the same Compose and environment flags shown above to
 those commands.
 

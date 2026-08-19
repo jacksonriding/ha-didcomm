@@ -1,7 +1,7 @@
 import json
 import unittest
 
-import rpc
+from ha_didcomm import rpc
 
 
 class RpcTests(unittest.TestCase):

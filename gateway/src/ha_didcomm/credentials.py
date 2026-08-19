@@ -12,7 +12,7 @@ hit an ACA-Py bug in this version -- its DIF/LD-proof handler ignores the
 explicit issuer_id passed to /present-proof-2.0/records/{id}/send-presentation
 (it always re-derives the signing DID itself via is_holder_override=True,
 and that derivation doesn't reliably resolve did:key credential subjects).
-Live possession proof is deferred; see ROADMAP.md.
+Live possession proof is deferred; see docs/ROADMAP.md.
 
 Credentials use JSON-LD (ld_proof) so no ledger/schema registration is
 needed: the @context is defined inline, and DIDs are did:key identities
@@ -25,7 +25,7 @@ import json
 from pathlib import Path
 import sqlite3
 
-import config
+from . import config
 
 CREDENTIAL_TYPE = "SmartHomeAccessCredential"
 
