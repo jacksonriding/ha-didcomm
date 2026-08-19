@@ -1,5 +1,5 @@
 name: ha-didcomm
-version: "0.0.6"
+version: "0.0.7"
 slug: ha_didcomm
 description: DIDComm and verifiable-credential access control for Home Assistant
 url: https://github.com/jacksonriding/ha-didcomm
@@ -12,17 +12,21 @@ arch:
   - amd64
   - aarch64
 ports:
-  8000/tcp: 8000
-  8090/tcp: 8090
+  8443/tcp: 8000
 ports_description:
-  8000/tcp: DIDComm inbound transport
-  8090/tcp: Home Assistant integration status API
+  8443/tcp: TLS-protected DIDComm and integration status API
+map:
+  - type: ssl
 options:
-  public_endpoint: http://homeassistant.local:8000
+  public_endpoint: https://homeassistant.local:8000
   home_id: home
   log_level: info
+  certfile: fullchain.pem
+  keyfile: privkey.pem
 schema:
   public_endpoint: url
   home_id: str
   log_level: list(debug|info|warning|error)
+  certfile: str
+  keyfile: str
 backup: cold

@@ -14,6 +14,10 @@ FROM ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts AS addon
 USER root
 WORKDIR /app/gateway
 
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y nginx \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
 

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ACAPY_ADMIN_URL = os.getenv("ACAPY_ADMIN_URL", "http://localhost:8021")
-ACAPY_ADMIN_API_KEY = os.getenv("ACAPY_ADMIN_API_KEY")  # None => insecure dev mode
+ACAPY_ADMIN_API_KEY = os.getenv("ACAPY_ADMIN_API_KEY")
 
 SUPERVISOR_TOKEN = os.getenv("SUPERVISOR_TOKEN")
 HA_BASE_URL = (

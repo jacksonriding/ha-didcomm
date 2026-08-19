@@ -67,12 +67,13 @@ store:
 https://github.com/jacksonriding/ha-didcomm
 ```
 
-Install **ha-didcomm**, set `public_endpoint` to a URL that remote agents can
-reach on port 8000, and start the app. The app bundles ACA-Py and the gateway,
-stores identity data under the Supervisor-managed `/data` volume, and uses the
-Home Assistant API proxy with `SUPERVISOR_TOKEN`. It does not require a
-long-lived Home Assistant token. See [gateway/DOCS.md](gateway/DOCS.md) for
-configuration and security notes.
+Install **ha-didcomm**, select Supervisor-managed TLS certificate files, set
+`public_endpoint` to the matching HTTPS URL on port 8000, and start the app.
+The app bundles ACA-Py, a TLS proxy, and the gateway, stores identity data
+under the Supervisor-managed `/data` volume, and uses the Home Assistant API
+proxy with `SUPERVISOR_TOKEN`. It does not require a long-lived Home Assistant
+token. See [gateway/DOCS.md](gateway/DOCS.md) for configuration and security
+notes.
 
 Home Assistant Container users can instead use
 [compose.standalone.yml](compose.standalone.yml); see

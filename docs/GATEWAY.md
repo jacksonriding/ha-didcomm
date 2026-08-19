@@ -25,28 +25,36 @@ The Compose agents and gateway use named volumes for their wallets and
 credential database. Container recreation therefore preserves connections,
 keys, and issued access records.
 
+The development admin APIs require fixed local-only keys. Define these once
+for the commands below:
+
+```powershell
+$homeHeaders = @{"X-API-Key" = "change-me-home-admin"}
+$userHeaders = @{"X-API-Key" = "change-me-user-admin"}
+```
+
 ## v0.0.1 manual test: connect two agents and toggle a helper
 
 1. Create an OOB invitation on the home agent:
 
    ```powershell
    $body = '{"handshake_protocols":["https://didcomm.org/didexchange/1.0"],"use_public_did":false}'
-   $inv = Invoke-RestMethod -Uri http://localhost:8021/out-of-band/create-invitation -Method Post -ContentType "application/json" -Body $body
+   $inv = Invoke-RestMethod -Uri http://localhost:8021/out-of-band/create-invitation -Method Post -Headers $homeHeaders -ContentType "application/json" -Body $body
    ```
 
 2. Have the user agent receive and auto-accept it:
 
    ```powershell
    $invJson = $inv.invitation | ConvertTo-Json -Depth 10 -Compress
-   $recv = Invoke-RestMethod -Uri "http://localhost:8031/out-of-band/receive-invitation?auto_accept=true" -Method Post -ContentType "application/json" -Body $invJson
+   $recv = Invoke-RestMethod -Uri "http://localhost:8031/out-of-band/receive-invitation?auto_accept=true" -Method Post -Headers $userHeaders -ContentType "application/json" -Body $invJson
    ```
 
 3. The home agent does **not** auto-accept incoming requests by default, so
-   manually accept it (check `GET http://localhost:8021/connections` for the
-   `request` connection id first):
+   manually accept it. Run `Invoke-RestMethod http://localhost:8021/connections
+   -Headers $homeHeaders` to find the `request` connection id first:
 
    ```powershell
-   Invoke-RestMethod -Uri "http://localhost:8021/didexchange/<connection_id>/accept-request" -Method Post
+   Invoke-RestMethod -Uri "http://localhost:8021/didexchange/<connection_id>/accept-request" -Method Post -Headers $homeHeaders
    ```
 
    Both agents' connections should now show `state: active` /
@@ -58,7 +66,7 @@ keys, and issued access records.
    ```powershell
    $request = @{jsonrpc="2.0"; id="request-1"; method="homeassistant.call_service"; params=@{action="turn_on"; entity_id="input_boolean.ssi_test"}} | ConvertTo-Json -Compress
    $msg = @{content=$request} | ConvertTo-Json -Compress
-   Invoke-RestMethod -Uri "http://localhost:8031/connections/<connection_id>/send-message" -Method Post -ContentType "application/json" -Body $msg
+   Invoke-RestMethod -Uri "http://localhost:8031/connections/<connection_id>/send-message" -Method Post -Headers $userHeaders -ContentType "application/json" -Body $msg
    ```
 
 The gateway logs should show it executed the command
@@ -79,8 +87,8 @@ possession checks aren't wired up yet — see below).
    pairwise connection DID) for issuing/holding JSON-LD credentials:
 
    ```powershell
-   $homeKey = Invoke-RestMethod -Uri "http://localhost:8021/wallet/did/create" -Method Post -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
-   $userKey = Invoke-RestMethod -Uri "http://localhost:8031/wallet/did/create" -Method Post -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
+   $homeKey = Invoke-RestMethod -Uri "http://localhost:8021/wallet/did/create" -Method Post -Headers $homeHeaders -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
+   $userKey = Invoke-RestMethod -Uri "http://localhost:8031/wallet/did/create" -Method Post -Headers $userHeaders -ContentType "application/json" -Body '{"method":"key","options":{"key_type":"ed25519"}}'
    ```
 
    Put the home's did:key in `gateway/.env` as `HOME_ISSUER_DID`, and restart

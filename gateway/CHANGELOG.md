@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.7
+
+- Require API-key authentication for the internal ACA-Py Admin API.
+- Terminate TLS in the app before forwarding DIDComm or status requests.
+- Require Supervisor-managed certificate and private-key files.
+
 ## 0.0.6
 
 - Add a separate read-only status API for the Home Assistant integration.

@@ -23,8 +23,8 @@ toggle a Home Assistant helper through it."*
 
 **Status: done (2026-08-16).**
 
-- [x] `compose.yml` running a single ACA-Py agent (`--admin-insecure-mode`
-      for local dev only, admin API bound to localhost)
+- [x] `compose.yml` running a single ACA-Py agent (API-key-protected admin API
+      bound to localhost)
 - [x] Second ACA-Py agent (or the ACA-Py demo agent) to act as the "remote user"
 - [x] Out-of-Band invitation + DID Exchange between the two agents using
       `did:peer:4` (no ledger)
@@ -117,7 +117,7 @@ pipeline.
 - [x] Standalone Docker Compose distribution for Home Assistant Container users
 - [x] Proper Home Assistant custom integration with Config Flow, showing
       connections/credentials as entities in the UI
-- [ ] Harden ACA-Py deployment: admin API key auth, TLS, no insecure mode
+- [x] Harden ACA-Py deployment: admin API key auth, TLS, no insecure mode
 - [ ] Multi-home / delegated access scenarios (guest visiting a different home)
 
 ## Non-goals (for now)

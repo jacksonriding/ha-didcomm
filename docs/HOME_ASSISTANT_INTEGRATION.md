@@ -20,14 +20,15 @@ The resulting path inside Home Assistant must be:
 
 Restart Home Assistant, then open **Settings > Devices & services > Add
 integration**, search for **ha-didcomm**, and enter the status API URL. For a
-default app or standalone installation on the same host, use:
+default Home Assistant app installation, use:
 
 ```text
-http://homeassistant.local:8090
+https://homeassistant.local:8000
 ```
 
-Use the Home Assistant host's LAN IP instead if that name does not resolve
-from the Home Assistant Core container.
+Use the HTTPS hostname covered by the configured certificate. A standalone
+deployment normally uses the value of `ACAPY_PUBLIC_ENDPOINT`, such as
+`https://home.example:8443`.
 
 ## Entities
 
@@ -39,10 +40,10 @@ from the Home Assistant Core container.
 - New connections and credentials are discovered without reloading the
   integration.
 
-Port 8090 exposes only sanitized, read-only status and health routes. Keep it
-on a trusted local network because connection identifiers and access scopes
-are still operational metadata. Mutation and webhook routes remain on the
-internal gateway port 8080.
+The TLS proxy exposes sanitized `/status` and `/health` routes alongside the
+DIDComm listener. Connection identifiers and access scopes are still
+operational metadata. Mutation, webhook, and ACA-Py Admin routes remain on the
+private container network.
 
 ## Development
 
@@ -52,3 +53,6 @@ With the development stack running, verify the status surface directly:
 docker compose up -d --build gateway
 Invoke-RestMethod http://localhost:8090/status
 ```
+
+The development stack deliberately uses loopback HTTP. Packaged deployments
+require HTTPS.

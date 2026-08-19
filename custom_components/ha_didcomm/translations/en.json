@@ -8,7 +8,7 @@
           "url": "Status API URL"
         },
         "data_description": {
-          "url": "Local URL published by the ha-didcomm app or standalone gateway, normally on port 8090."
+          "url": "HTTPS URL published by the ha-didcomm TLS proxy."
         }
       },
       "reconfigure": {

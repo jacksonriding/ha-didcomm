@@ -19,13 +19,14 @@ services:
 
   acapy-home:
     image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    environment:
+      ACAPY_ADMIN_API_KEY: change-me-home-admin
     command: >
       start
       --label home-agent
       --inbound-transport http 0.0.0.0 8000
       --outbound-transport http
       --admin 0.0.0.0 8021
-      --admin-insecure-mode
       --webhook-url http://gateway:8080
       --endpoint ${ACAPY_HOME_ENDPOINT:-http://acapy-home:8000}
       --no-ledger
@@ -35,8 +36,8 @@ services:
       --auto-provision
       --log-level info
     ports:
-      - "8000:8000" # DIDComm inbound
-      - "8021:8021" # Admin API (dev only, not exposed beyond localhost)
+      - "127.0.0.1:8000:8000" # DIDComm inbound (local development)
+      - "127.0.0.1:8021:8021" # Admin API (dev only)
     volumes:
       - acapy-home-wallet:/home/aries/.acapy_agent/wallet
     depends_on:
@@ -50,10 +51,11 @@ services:
     env_file:
       - ./gateway/.env
     environment:
+      ACAPY_ADMIN_API_KEY: change-me-home-admin
       CREDENTIAL_STORE_PATH: /data/credentials.sqlite3
     ports:
-      - "8080:8080"
-      - "8090:8090"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8090:8090"
     volumes:
       - gateway-data:/data
     depends_on:
@@ -62,13 +64,14 @@ services:
   # Represents the remote/user agent, for local dev/testing only.
   acapy-user:
     image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    environment:
+      ACAPY_ADMIN_API_KEY: change-me-user-admin
     command: >
       start
       --label user-agent
       --inbound-transport http 0.0.0.0 8000
       --outbound-transport http
       --admin 0.0.0.0 8021
-      --admin-insecure-mode
       --endpoint http://acapy-user:8000
       --no-ledger
       --wallet-type askar
@@ -79,8 +82,8 @@ services:
       --auto-store-credential
       --log-level info
     ports:
-      - "8010:8000" # DIDComm inbound
-      - "8031:8021" # Admin API (dev only, not exposed beyond localhost)
+      - "127.0.0.1:8010:8000" # DIDComm inbound (local development)
+      - "127.0.0.1:8031:8021" # Admin API (dev only)
     volumes:
       - acapy-user-wallet:/home/aries/.acapy_agent/wallet
     depends_on:

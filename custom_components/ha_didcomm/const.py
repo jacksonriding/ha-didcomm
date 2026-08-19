@@ -5,6 +5,6 @@ from homeassistant.const import Platform
 
 DOMAIN = "ha_didcomm"
 CONF_URL = "url"
-DEFAULT_URL = "http://homeassistant.local:8090"
+DEFAULT_URL = "https://homeassistant.local:8000"
 PLATFORMS = [Platform.SENSOR]
 UPDATE_INTERVAL = timedelta(seconds=30)
