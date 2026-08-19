@@ -104,3 +104,22 @@ volume. For a non-Compose deployment, set `CREDENTIAL_STORE_PATH` to the
 desired database location (the default is `data/credentials.sqlite3`). Back
 up that file as part of the gateway's application data.
 
+### Revoking access
+
+Revocation is issuer-side and takes effect immediately in the gateway. Revoke
+one credential using the exchange id returned when it was issued:
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/admin/revoke-credential/<cred_ex_id>" -Method Post
+```
+
+Or revoke every credential associated with a connection:
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/admin/revoke-connection/<connection_id>" -Method Post
+```
+
+These endpoints are unauthenticated development tools, like the issuance
+endpoint. Do not expose the gateway admin routes outside a trusted local
+environment.
+

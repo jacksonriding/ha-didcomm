@@ -1,0 +1,51 @@
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+import config
+import credentials
+import main
+
+
+class RevocationEndpointTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        store_path = str(Path(self.temp_dir.name) / "credentials.sqlite3")
+        self.path_patch = patch.object(config, "CREDENTIAL_STORE_PATH", store_path)
+        self.path_patch.start()
+        self.addCleanup(self.path_patch.stop)
+
+        self.credential = credentials.build_credential(
+            subject_did="did:key:holder",
+            issuer_did="did:key:issuer",
+            role="guest",
+            permissions=["light.*"],
+        )
+
+    def test_revoke_credential_endpoint(self):
+        credentials.remember_issued("connection-1", self.credential, "exchange-1")
+
+        with TestClient(main.app) as client:
+            response = client.post("/admin/revoke-credential/exchange-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"revoked": True, "cred_ex_id": "exchange-1"})
+        self.assertFalse(credentials.is_authorised("connection-1", "light.kitchen"))
+
+    def test_revoke_connection_endpoint_and_unknown_record(self):
+        credentials.remember_issued("connection-1", self.credential, "exchange-1")
+
+        with TestClient(main.app) as client:
+            response = client.post("/admin/revoke-connection/connection-1")
+            missing = client.post("/admin/revoke-credential/unknown")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(missing.status_code, 404)
+
+
+if __name__ == "__main__":
+    unittest.main()

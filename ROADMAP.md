@@ -93,7 +93,8 @@ pipeline.
 - [ ] Live Present Proof-based possession verification (deferred, see above)
 - [x] Persist issued credentials in a local SQLite store, backed by a Docker
       named volume so authorization survives gateway/container restarts
-- [ ] Basic revocation check
+- [x] Basic issuer-side revocation check for individual credentials and all
+      credentials associated with a connection
 
 
 ## v0.0.4 — Onboarding UX

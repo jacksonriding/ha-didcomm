@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS issued_credentials (
     connection_id TEXT NOT NULL,
     credential_exchange_id TEXT,
     credential_json TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    revoked_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_issued_credentials_connection
     ON issued_credentials (connection_id);
@@ -58,6 +59,16 @@ def initialize_store() -> None:
     with closing(_connect()) as connection:
         with connection:
             connection.executescript(_SCHEMA)
+            columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(issued_credentials)"
+                ).fetchall()
+            }
+            if "revoked_at" not in columns:
+                connection.execute(
+                    "ALTER TABLE issued_credentials ADD COLUMN revoked_at TEXT"
+                )
 
 
 def build_credential(
@@ -121,7 +132,7 @@ def _issued_for_connection(connection_id: str) -> list[dict]:
             """
             SELECT credential_json
             FROM issued_credentials
-            WHERE connection_id = ?
+            WHERE connection_id = ? AND revoked_at IS NULL
             ORDER BY id DESC
             """,
             (connection_id,),
@@ -136,6 +147,44 @@ def _issued_for_connection(connection_id: str) -> list[dict]:
         if isinstance(credential, dict):
             issued.append(credential)
     return issued
+
+
+def revoke_credential(credential_exchange_id: str) -> bool:
+    """Revoke one issued credential; return False when it does not exist."""
+    if not credential_exchange_id:
+        return False
+    initialize_store()
+    revoked_at = datetime.now(timezone.utc).isoformat()
+    with closing(_connect()) as connection:
+        with connection:
+            cursor = connection.execute(
+                """
+                UPDATE issued_credentials
+                SET revoked_at = COALESCE(revoked_at, ?)
+                WHERE credential_exchange_id = ?
+                """,
+                (revoked_at, credential_exchange_id),
+            )
+    return cursor.rowcount > 0
+
+
+def revoke_connection(connection_id: str) -> bool:
+    """Revoke every credential for a connection; return False if none exist."""
+    if not connection_id:
+        return False
+    initialize_store()
+    revoked_at = datetime.now(timezone.utc).isoformat()
+    with closing(_connect()) as connection:
+        with connection:
+            cursor = connection.execute(
+                """
+                UPDATE issued_credentials
+                SET revoked_at = COALESCE(revoked_at, ?)
+                WHERE connection_id = ?
+                """,
+                (revoked_at, connection_id),
+            )
+    return cursor.rowcount > 0
 
 
 def _is_expired(credential: dict) -> bool:

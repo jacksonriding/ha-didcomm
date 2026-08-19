@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import json
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 
 import acapy
 import config
@@ -57,6 +57,24 @@ async def admin_issue_credential(request: Request):
     credential_exchange_id = result.get("cred_ex_id")
     credentials.remember_issued(connection_id, credential, credential_exchange_id)
     return {"cred_ex_id": credential_exchange_id}
+
+
+@app.post("/admin/revoke-credential/{credential_exchange_id}")
+async def admin_revoke_credential(credential_exchange_id: str):
+    """Dev-only: revoke one locally issued credential."""
+    if not credentials.revoke_credential(credential_exchange_id):
+        raise HTTPException(status_code=404, detail="Credential not found")
+    logger.info("Revoked credential %s", credential_exchange_id)
+    return {"revoked": True, "cred_ex_id": credential_exchange_id}
+
+
+@app.post("/admin/revoke-connection/{connection_id}")
+async def admin_revoke_connection(connection_id: str):
+    """Dev-only: revoke every locally issued credential for a connection."""
+    if not credentials.revoke_connection(connection_id):
+        raise HTTPException(status_code=404, detail="Connection credentials not found")
+    logger.info("Revoked all credentials for connection %s", connection_id)
+    return {"revoked": True, "connection_id": connection_id}
 
 
 @app.post("/topic/{topic}/")
