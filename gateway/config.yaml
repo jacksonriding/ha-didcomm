@@ -1,5 +1,5 @@
 name: ha-didcomm
-version: "0.0.7"
+version: "0.0.8"
 slug: ha_didcomm
 description: DIDComm and verifiable-credential access control for Home Assistant
 url: https://github.com/jacksonriding/ha-didcomm

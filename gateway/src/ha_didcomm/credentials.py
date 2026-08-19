@@ -224,6 +224,7 @@ def list_issued() -> list[dict]:
         if (
             not isinstance(credential_types, list)
             or CREDENTIAL_TYPE not in credential_types
+            or not _has_expected_scope(credential)
         ):
             state = "invalid"
         elif revoked_at:
@@ -238,6 +239,12 @@ def list_issued() -> list[dict]:
                 "credential_exchange_id": credential_exchange_id,
                 "connection_id": connection_id,
                 "state": state,
+                "home_id": subject.get("home")
+                if isinstance(subject.get("home"), str)
+                else None,
+                "issuer_did": credential.get("issuer")
+                if isinstance(credential.get("issuer"), str)
+                else None,
                 "role": subject.get("role")
                 if isinstance(subject.get("role"), str)
                 else None,
@@ -271,6 +278,16 @@ def _is_expired(credential: dict) -> bool:
     return expiry_dt < datetime.now(timezone.utc)
 
 
+def _has_expected_scope(credential: dict) -> bool:
+    """Require credentials to belong to this gateway's home and issuer."""
+    subject = credential.get("credentialSubject")
+    return (
+        isinstance(subject, dict)
+        and subject.get("home") == config.HOME_ID
+        and credential.get("issuer") == config.HOME_ISSUER_DID
+    )
+
+
 def is_authorised(connection_id: str, entity_id: str) -> bool:
     """True if a non-expired credential issued to this connection grants entity_id."""
     if not isinstance(connection_id, str) or not isinstance(entity_id, str):
@@ -285,7 +302,7 @@ def is_authorised(connection_id: str, entity_id: str) -> bool:
             or CREDENTIAL_TYPE not in credential_types
         ):
             continue
-        if subject.get("home") != config.HOME_ID:
+        if not _has_expected_scope(credential):
             continue
         if _is_expired(credential):
             continue

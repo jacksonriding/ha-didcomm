@@ -168,6 +168,8 @@ class CredentialSensor(HaDidcommEntity):
         return {
             "credential_exchange_id": record.get("credential_exchange_id"),
             "connection_id": record.get("connection_id"),
+            "home_id": record.get("home_id"),
+            "issuer_did": record.get("issuer_did"),
             "role": record.get("role"),
             "subject_did": record.get("subject_did"),
             "permissions": record.get("permissions", []),

@@ -118,7 +118,9 @@ pipeline.
 - [x] Proper Home Assistant custom integration with Config Flow, showing
       connections/credentials as entities in the UI
 - [x] Harden ACA-Py deployment: admin API key auth, TLS, no insecure mode
-- [ ] Multi-home / delegated access scenarios (guest visiting a different home)
+- [x] Multi-home / delegated access scenarios (guest visiting a different home):
+  independently scoped home/issuer credentials, multiple Home Assistant config
+  entries, cross-home isolation tests, and an operator guide
 
 ## Non-goals (for now)
 

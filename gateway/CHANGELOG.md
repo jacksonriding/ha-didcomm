@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.8
+
+- Support independently scoped guest credentials across multiple homes.
+- Expose credential home and issuer metadata to the Home Assistant integration.
+- Reject stored credentials whose home or issuer does not match this gateway.
+
 ## 0.0.7
 
 - Require API-key authentication for the internal ACA-Py Admin API.

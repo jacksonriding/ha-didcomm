@@ -30,6 +30,11 @@ Use the HTTPS hostname covered by the configured certificate. A standalone
 deployment normally uses the value of `ACAPY_PUBLIC_ENDPOINT`, such as
 `https://home.example:8443`.
 
+Add another config entry for each additional home gateway. Entries are keyed
+by the gateway issuer DID, so the same Home Assistant instance can display
+connections and credentials from multiple homes without entity ID collisions.
+See [multi-home delegated access](MULTI_HOME.md) for the isolation model.
+
 ## Entities
 
 - Each ACA-Py connection becomes a sensor whose state is the connection state.
@@ -37,6 +42,7 @@ deployment normally uses the value of `ACAPY_PUBLIC_ENDPOINT`, such as
   `revoked`, or `invalid` state.
 - Credential entities are grouped under their connection device and include
   role, permissions, subject DID, issuance, expiry, and revocation metadata.
+- Credential attributes include the issuing home ID and issuer DID.
 - New connections and credentials are discovered without reloading the
   integration.
 

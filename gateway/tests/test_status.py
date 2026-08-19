@@ -28,7 +28,9 @@ class StatusApiTests(unittest.TestCase):
             self.addCleanup(active_patch.stop)
 
     @patch("ha_didcomm.status.acapy.list_connections", new_callable=AsyncMock)
-    def test_status_returns_sanitized_connections_and_credentials(self, list_connections):
+    def test_status_returns_sanitized_connections_and_credentials(
+        self, list_connections
+    ):
         list_connections.return_value = [
             {
                 "connection_id": "connection-1",
@@ -55,6 +57,8 @@ class StatusApiTests(unittest.TestCase):
         self.assertEqual(body["connections"][0]["label"], "Alice")
         self.assertNotIn("invitation_key", body["connections"][0])
         self.assertEqual(body["credentials"][0]["state"], "active")
+        self.assertEqual(body["credentials"][0]["home_id"], "test-home")
+        self.assertEqual(body["credentials"][0]["issuer_did"], "did:key:test-home")
         self.assertEqual(body["credentials"][0]["permissions"], ["light.guest_*"])
 
     @patch("ha_didcomm.status.acapy.list_connections", new_callable=AsyncMock)

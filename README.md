@@ -94,3 +94,5 @@ compose.standalone.yml   Standalone deployment stack
 
 To show DIDComm connections and credentials in Home Assistant's UI, install
 the [custom integration](docs/HOME_ASSISTANT_INTEGRATION.md).
+Multiple independently operated gateways can be added to the same Home
+Assistant instance; see the [multi-home guide](docs/MULTI_HOME.md).

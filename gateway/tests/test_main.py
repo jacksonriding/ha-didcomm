@@ -18,8 +18,13 @@ class RevocationEndpointTests(unittest.TestCase):
         self.addCleanup(self.temp_dir.cleanup)
         store_path = str(Path(self.temp_dir.name) / "credentials.sqlite3")
         self.path_patch = patch.object(config, "CREDENTIAL_STORE_PATH", store_path)
+        self.issuer_patch = patch.object(
+            config, "HOME_ISSUER_DID", "did:key:issuer"
+        )
         self.path_patch.start()
+        self.issuer_patch.start()
         self.addCleanup(self.path_patch.stop)
+        self.addCleanup(self.issuer_patch.stop)
 
         self.credential = credentials.build_credential(
             subject_did="did:key:holder",

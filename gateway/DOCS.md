@@ -33,6 +33,10 @@ To display connections and credentials as Home Assistant entities, follow the
 and configure its status URL as `https://homeassistant.local:8000` or the
 certificate-covered hostname in `public_endpoint`.
 
+The same Home Assistant instance may add multiple independently operated
+gateways. Each home must use its own `home_id`, issuer DID, wallet, and data
+volume. See the [multi-home guide](../docs/MULTI_HOME.md).
+
 The app refuses to start when `public_endpoint` is not HTTPS or when its
 certificate files are missing. ACA-Py's Admin API key is generated once,
 stored under `/data`, and reused across upgrades.
