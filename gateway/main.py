@@ -5,6 +5,7 @@ verifiable credentials issued to a connection (see credentials.py). A
 message body is expected to be JSON:
 {"action": "turn_on", "entity_id": "input_boolean.ssi_test"}.
 """
+from contextlib import asynccontextmanager
 import json
 import logging
 
@@ -18,7 +19,14 @@ import home_assistant
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
 
-app = FastAPI(title="ha-didcomm gateway")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    credentials.initialize_store()
+    yield
+
+
+app = FastAPI(title="ha-didcomm gateway", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -46,8 +54,9 @@ async def admin_issue_credential(request: Request):
         expires_iso=body.get("expires"),
     )
     result = await acapy.issue_credential(connection_id, credential)
-    credentials.remember_issued(connection_id, credential)
-    return {"cred_ex_id": result.get("cred_ex_id")}
+    credential_exchange_id = result.get("cred_ex_id")
+    credentials.remember_issued(connection_id, credential, credential_exchange_id)
+    return {"cred_ex_id": credential_exchange_id}
 
 
 @app.post("/topic/{topic}/")

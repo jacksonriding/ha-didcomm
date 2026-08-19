@@ -98,6 +98,9 @@ aren't wired up yet — see below).
    else is denied and logged (`Denied <action> -> <entity_id> for connection
    <id>`) with no Home Assistant call made.
 
-Note: the credential store (`credentials.ISSUED`) is in-memory and is lost
-when the gateway restarts — re-issue credentials after a restart if testing.
+Issued credentials are stored in SQLite and survive gateway/container
+restarts. Docker Compose keeps the database in the `gateway-data` named
+volume. For a non-Compose deployment, set `CREDENTIAL_STORE_PATH` to the
+desired database location (the default is `data/credentials.sqlite3`). Back
+up that file as part of the gateway's application data.
 

@@ -5,7 +5,7 @@ verifiable credentials (JSON-LD, ld_proof), issued to a connection via
 ACA-Py's Issue Credential 2.0 protocol.
 
 Note on scope: this checks the credentials the home has issued to a
-connection (in-memory, per gateway process) rather than running a live
+connection (persisted locally in SQLite) rather than running a live
 Present Proof exchange asking the remote party to prove current possession.
 A first attempt at wiring up DIF Presentation Exchange proof-of-possession
 hit an ACA-Py bug in this version -- its DIF/LD-proof handler ignores the
@@ -18,16 +18,46 @@ Credentials use JSON-LD (ld_proof) so no ledger/schema registration is
 needed: the @context is defined inline, and DIDs are did:key identities
 (issuer = the home's did:key, subject = the remote party's did:key).
 """
+from contextlib import closing
 from datetime import datetime, timezone
 from fnmatch import fnmatch
+import json
+from pathlib import Path
+import sqlite3
 
 import config
 
 CREDENTIAL_TYPE = "SmartHomeAccessCredential"
 
-# connection_id -> list of issued credential dicts (in-memory; cleared on
-# gateway restart -- a real deployment would persist this).
-ISSUED: dict[str, list[dict]] = {}
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS issued_credentials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    connection_id TEXT NOT NULL,
+    credential_exchange_id TEXT,
+    credential_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_issued_credentials_connection
+    ON issued_credentials (connection_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_issued_credentials_exchange
+    ON issued_credentials (credential_exchange_id)
+    WHERE credential_exchange_id IS NOT NULL;
+"""
+
+
+def _connect() -> sqlite3.Connection:
+    database_path = Path(config.CREDENTIAL_STORE_PATH)
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(database_path, timeout=5)
+    connection.execute("PRAGMA busy_timeout = 5000")
+    return connection
+
+
+def initialize_store() -> None:
+    """Create the credential store schema if it does not already exist."""
+    with closing(_connect()) as connection:
+        with connection:
+            connection.executescript(_SCHEMA)
 
 
 def build_credential(
@@ -63,32 +93,88 @@ def build_credential(
     return credential
 
 
-def remember_issued(connection_id: str, credential: dict) -> None:
-    ISSUED.setdefault(connection_id, []).append(credential)
+def remember_issued(
+    connection_id: str,
+    credential: dict,
+    credential_exchange_id: str | None = None,
+) -> None:
+    """Persist a credential after ACA-Py has accepted the issuance request."""
+    initialize_store()
+    encoded = json.dumps(credential, separators=(",", ":"), sort_keys=True)
+    created_at = datetime.now(timezone.utc).isoformat()
+    with closing(_connect()) as connection:
+        with connection:
+            connection.execute(
+                """
+                INSERT INTO issued_credentials (
+                    connection_id, credential_exchange_id, credential_json, created_at
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (connection_id, credential_exchange_id, encoded, created_at),
+            )
+
+
+def _issued_for_connection(connection_id: str) -> list[dict]:
+    initialize_store()
+    with closing(_connect()) as connection:
+        rows = connection.execute(
+            """
+            SELECT credential_json
+            FROM issued_credentials
+            WHERE connection_id = ?
+            ORDER BY id DESC
+            """,
+            (connection_id,),
+        ).fetchall()
+
+    issued = []
+    for (encoded,) in rows:
+        try:
+            credential = json.loads(encoded)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(credential, dict):
+            issued.append(credential)
+    return issued
 
 
 def _is_expired(credential: dict) -> bool:
     expiry = credential.get("expirationDate")
     if not expiry:
         return False
+    if not isinstance(expiry, str):
+        return True
     try:
         expiry_dt = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
-    except ValueError:
-        return False
+    except (TypeError, ValueError):
+        # Invalid expiry data must never broaden access.
+        return True
+    if expiry_dt.tzinfo is None:
+        return True
     return expiry_dt < datetime.now(timezone.utc)
 
 
 def is_authorised(connection_id: str, entity_id: str) -> bool:
     """True if a non-expired credential issued to this connection grants entity_id."""
-    for credential in ISSUED.get(connection_id, []):
+    if not isinstance(connection_id, str) or not isinstance(entity_id, str):
+        return False
+    for credential in _issued_for_connection(connection_id):
         subject = credential.get("credentialSubject", {})
-        if CREDENTIAL_TYPE not in credential.get("type", []):
+        if not isinstance(subject, dict):
+            continue
+        credential_types = credential.get("type", [])
+        if not isinstance(credential_types, list) or CREDENTIAL_TYPE not in credential_types:
             continue
         if subject.get("home") != config.HOME_ID:
             continue
         if _is_expired(credential):
             continue
         permissions = subject.get("permissions", [])
-        if any(fnmatch(entity_id, pattern) for pattern in permissions):
+        if not isinstance(permissions, list):
+            continue
+        if any(
+            isinstance(pattern, str) and fnmatch(entity_id, pattern)
+            for pattern in permissions
+        ):
             return True
     return False

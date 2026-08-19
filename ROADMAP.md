@@ -91,7 +91,8 @@ with a local JSON-LD signature library instead of ACA-Py's present-proof
 pipeline.
 
 - [ ] Live Present Proof-based possession verification (deferred, see above)
-- [ ] Persist issued credentials (currently in-memory, lost on gateway restart)
+- [x] Persist issued credentials in a local SQLite store, backed by a Docker
+      named volume so authorization survives gateway/container restarts
 - [ ] Basic revocation check
 
 
