@@ -1,0 +1,11 @@
+{
+  "domain": "ha_didcomm",
+  "name": "ha-didcomm",
+  "codeowners": ["@jacksonriding"],
+  "config_flow": true,
+  "documentation": "https://github.com/jacksonriding/ha-didcomm",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "single_config_entry": true,
+  "version": "0.1.0"
+}

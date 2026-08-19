@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to ha-didcomm",
+        "description": "Enter the URL of the gateway's read-only status API.",
+        "data": {
+          "url": "Status API URL"
+        },
+        "data_description": {
+          "url": "Local URL published by the ha-didcomm app or standalone gateway, normally on port 8090."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure ha-didcomm",
+        "description": "Update the URL of the same gateway's read-only status API.",
+        "data": {
+          "url": "Status API URL"
+        },
+        "data_description": {
+          "url": "The integration verifies the gateway before saving the new URL."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the gateway status API"
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured",
+      "reconfigure_successful": "The gateway configuration was updated",
+      "wrong_gateway": "The new URL belongs to a different gateway"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "credential": {
+        "name": "Credential {credential_id}",
+        "state": {
+          "active": "Active",
+          "expired": "Expired",
+          "revoked": "Revoked",
+          "invalid": "Invalid"
+        }
+      }
+    }
+  }
+}

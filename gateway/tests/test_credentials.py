@@ -148,6 +148,23 @@ class CredentialStoreTests(unittest.TestCase):
             credentials.is_authorised("legacy-connection", "light.guest_room")
         )
 
+    def test_list_issued_reports_active_expired_and_revoked_records(self):
+        credentials.remember_issued("active", self.credential(), "exchange-active")
+        credentials.remember_issued(
+            "expired",
+            self.credential(expires="2020-01-01T00:00:00Z"),
+            "exchange-expired",
+        )
+        credentials.remember_issued("revoked", self.credential(), "exchange-revoked")
+        credentials.revoke_credential("exchange-revoked")
+
+        records = {record["id"]: record for record in credentials.list_issued()}
+
+        self.assertEqual(records["exchange-active"]["state"], "active")
+        self.assertEqual(records["exchange-expired"]["state"], "expired")
+        self.assertEqual(records["exchange-revoked"]["state"], "revoked")
+        self.assertEqual(records["exchange-active"]["role"], "guest")
+
 
 if __name__ == "__main__":
     unittest.main()

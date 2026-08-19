@@ -15,13 +15,20 @@ long-lived Home Assistant access token is required.
 The ACA-Py wallet, generated issuer DID, wallet key, and gateway credential
 database are stored under `/data` and included in cold Home Assistant backups.
 
-Port 8000 is the only exposed port. ACA-Py's Admin API and the gateway webhook
-listener bind to loopback inside the app container.
+Port 8000 carries DIDComm traffic. Port 8090 provides the sanitized, read-only
+status API used by the optional Home Assistant custom integration. ACA-Py's
+Admin API and the gateway webhook listener bind to loopback inside the app
+container.
 
 ## Installation from this repository
 
 Add `https://github.com/jacksonriding/ha-didcomm` as a custom app repository,
 install **ha-didcomm**, configure `public_endpoint`, and start it.
+
+To display connections and credentials as Home Assistant entities, follow the
+[custom integration installation guide](../docs/HOME_ASSISTANT_INTEGRATION.md)
+and configure its status URL as `http://homeassistant.local:8090` or the Home
+Assistant host's LAN address.
 
 This app is experimental. The public DIDComm endpoint does not yet configure
 TLS automatically; use it only on a trusted LAN unless you provide a secure

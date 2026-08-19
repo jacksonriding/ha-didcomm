@@ -75,9 +75,10 @@ def main() -> int:
     acapy_environment["ACAPY_HOME"] = str(DATA_DIR / "acapy")
     acapy_process = subprocess.Popen(acapy_command, env=acapy_environment)
     gateway_process = None
+    status_process = None
 
     def stop_processes(*_):
-        for process in (gateway_process, acapy_process):
+        for process in (status_process, gateway_process, acapy_process):
             if process and process.poll() is None:
                 process.terminate()
 
@@ -107,9 +108,30 @@ def main() -> int:
             ],
             env=environment,
         )
-        while acapy_process.poll() is None and gateway_process.poll() is None:
+        status_process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "ha_didcomm.status:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8090",
+            ],
+            env=environment,
+        )
+        while all(
+            process.poll() is None
+            for process in (acapy_process, gateway_process, status_process)
+        ):
             time.sleep(0.5)
-        return acapy_process.returncode or gateway_process.returncode or 0
+        return (
+            acapy_process.returncode
+            or gateway_process.returncode
+            or status_process.returncode
+            or 0
+        )
     finally:
         stop_processes()
 

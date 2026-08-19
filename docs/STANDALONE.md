@@ -57,3 +57,7 @@ authorization records. Back them up before upgrades and never run
 Only the DIDComm transport port is published. ACA-Py's insecure development
 Admin API and the gateway owner API remain accessible solely within the Compose
 network.
+
+The sanitized, read-only status API is published on port 8090 by default for
+the optional [Home Assistant custom integration](HOME_ASSISTANT_INTEGRATION.md).
+Set `STATUS_PORT` in `.env.standalone` to change only the host-side port.

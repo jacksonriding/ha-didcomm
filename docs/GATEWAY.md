@@ -13,7 +13,8 @@ docker compose up -d --build
 
 This starts `acapy-home` (admin API on :8021, inbound on :8000), `acapy-user`
 (admin :8031, inbound :8010, representing the remote agent) and `gateway`
-(:8080). Before starting:
+(webhooks and owner routes on :8080, read-only status on :8090). Before
+starting:
 
 - Copy `gateway/.env.example` to `gateway/.env` and fill in your Home
   Assistant `HA_BASE_URL` and a long-lived access token (`HA_TOKEN`).

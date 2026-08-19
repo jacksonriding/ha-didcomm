@@ -60,10 +60,14 @@ services:
       HOME_ISSUER_DID: ${HOME_ISSUER_DID:?Set HOME_ISSUER_DID in .env.standalone}
       GATEWAY_HOST: 0.0.0.0
       GATEWAY_PORT: 8080
+      STATUS_HOST: 0.0.0.0
+      STATUS_PORT: 8090
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
       - gateway-data:/data
+    ports:
+      - "${STATUS_PORT:-8090}:8090"
     depends_on:
       acapy:
         condition: service_healthy

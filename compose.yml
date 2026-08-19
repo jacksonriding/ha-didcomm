@@ -53,6 +53,7 @@ services:
       CREDENTIAL_STORE_PATH: /data/credentials.sqlite3
     ports:
       - "8080:8080"
+      - "8090:8090"
     volumes:
       - gateway-data:/data
     depends_on:

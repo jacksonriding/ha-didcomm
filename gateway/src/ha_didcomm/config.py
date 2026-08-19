@@ -18,6 +18,8 @@ HA_TOKEN = SUPERVISOR_TOKEN or os.getenv("HA_TOKEN", "")
 
 GATEWAY_HOST = os.getenv("GATEWAY_HOST", "0.0.0.0")
 GATEWAY_PORT = int(os.getenv("GATEWAY_PORT", "8080"))
+STATUS_HOST = os.getenv("STATUS_HOST", "0.0.0.0")
+STATUS_PORT = int(os.getenv("STATUS_PORT", "8090"))
 
 # SQLite keeps issued credentials durable without adding another service. The
 # parent directory is created by the credential store during startup.

@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ha_didcomm ./ha_didcomm
 
-CMD ["uvicorn", "ha_didcomm.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "ha_didcomm.serve"]
 
 FROM ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts AS addon
 

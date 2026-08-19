@@ -83,9 +83,13 @@ commands.
 
 ```text
 docs/                    Project, gateway, and deployment documentation
+custom_components/       Home Assistant custom integration
 gateway/config.yaml      Home Assistant app metadata
 gateway/src/ha_didcomm/  Python gateway package
 gateway/tests/           Automated gateway tests
 compose.yml              Local two-agent development stack
 compose.standalone.yml   Standalone deployment stack
 ```
+
+To show DIDComm connections and credentials in Home Assistant's UI, install
+the [custom integration](docs/HOME_ASSISTANT_INTEGRATION.md).

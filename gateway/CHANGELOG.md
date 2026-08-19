@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.6
+
+- Add a separate read-only status API for the Home Assistant integration.
+- Keep webhook and owner mutation routes isolated from the published UI port.
+
 ## 0.0.5
 
 - Initial experimental Home Assistant app packaging.

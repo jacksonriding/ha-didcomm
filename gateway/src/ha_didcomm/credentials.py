@@ -187,6 +187,74 @@ def revoke_connection(connection_id: str) -> bool:
     return cursor.rowcount > 0
 
 
+def list_issued() -> list[dict]:
+    """Return sanitized credential records for owner-facing status displays."""
+    initialize_store()
+    with closing(_connect()) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, connection_id, credential_exchange_id, credential_json,
+                   created_at, revoked_at
+            FROM issued_credentials
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+    records = []
+    for (
+        record_id,
+        connection_id,
+        credential_exchange_id,
+        encoded,
+        created_at,
+        revoked_at,
+    ) in rows:
+        try:
+            credential = json.loads(encoded)
+        except (TypeError, json.JSONDecodeError):
+            credential = {}
+        subject = credential.get("credentialSubject", {})
+        if not isinstance(subject, dict):
+            subject = {}
+        permissions = subject.get("permissions", [])
+        if not isinstance(permissions, list):
+            permissions = []
+        permissions = [item for item in permissions if isinstance(item, str)]
+        credential_types = credential.get("type", [])
+        if (
+            not isinstance(credential_types, list)
+            or CREDENTIAL_TYPE not in credential_types
+        ):
+            state = "invalid"
+        elif revoked_at:
+            state = "revoked"
+        elif _is_expired(credential):
+            state = "expired"
+        else:
+            state = "active"
+        records.append(
+            {
+                "id": credential_exchange_id or f"local-{record_id}",
+                "credential_exchange_id": credential_exchange_id,
+                "connection_id": connection_id,
+                "state": state,
+                "role": subject.get("role")
+                if isinstance(subject.get("role"), str)
+                else None,
+                "subject_did": subject.get("id")
+                if isinstance(subject.get("id"), str)
+                else None,
+                "permissions": permissions,
+                "expires_at": credential.get("expirationDate")
+                if isinstance(credential.get("expirationDate"), str)
+                else None,
+                "issued_at": created_at,
+                "revoked_at": revoked_at,
+            }
+        )
+    return records
+
+
 def _is_expired(credential: dict) -> bool:
     expiry = credential.get("expirationDate")
     if not expiry:
@@ -212,7 +280,10 @@ def is_authorised(connection_id: str, entity_id: str) -> bool:
         if not isinstance(subject, dict):
             continue
         credential_types = credential.get("type", [])
-        if not isinstance(credential_types, list) or CREDENTIAL_TYPE not in credential_types:
+        if (
+            not isinstance(credential_types, list)
+            or CREDENTIAL_TYPE not in credential_types
+        ):
             continue
         if subject.get("home") != config.HOME_ID:
             continue
