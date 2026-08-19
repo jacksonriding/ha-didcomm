@@ -51,7 +51,8 @@ This starts `acapy-home` (admin API on :8021, inbound on :8000), `acapy-user`
    (use the user agent's connection id):
 
    ```powershell
-   $msg = '{"content":"{\"action\": \"turn_on\", \"entity_id\": \"input_boolean.ssi_test\"}"}'
+   $request = @{jsonrpc="2.0"; id="request-1"; method="homeassistant.call_service"; params=@{action="turn_on"; entity_id="input_boolean.ssi_test"}} | ConvertTo-Json -Compress
+   $msg = @{content=$request} | ConvertTo-Json -Compress
    Invoke-RestMethod -Uri "http://localhost:8031/connections/<connection_id>/send-message" -Method Post -ContentType "application/json" -Body $msg
    ```
 
@@ -181,4 +182,25 @@ These owner commands operate directly against ACA-Py and the gateway's
 persistent credential volume, so the gateway web process does not need to be
 running. They still require the home ACA-Py container to be reachable for
 connection listing and issuance.
+
+## DIDComm command schema
+
+Commands use JSON-RPC 2.0 inside a DIDComm Basic Message. The supported method
+is `homeassistant.call_service`, with `action` and `entity_id` parameters:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "request-1",
+  "method": "homeassistant.call_service",
+  "params": {
+    "action": "turn_on",
+    "entity_id": "input_boolean.ssi_test"
+  }
+}
+```
+
+The gateway replies over the same DIDComm connection with a JSON-RPC result or
+a structured error. Authorization failures use code `-32001`; standard parse,
+request, method, and parameter errors use the corresponding JSON-RPC codes.
 

@@ -2,19 +2,21 @@
 
 v0.0.3: replaces the v0.0.2 static config/policies.yaml allowlist with real
 verifiable credentials issued to a connection (see credentials.py). A
-message body is expected to be JSON:
-{"action": "turn_on", "entity_id": "input_boolean.ssi_test"}.
+message body is expected to use the JSON-RPC schema documented in README.md.
 """
 from contextlib import asynccontextmanager
-import json
 import logging
+
+import httpx
 
 from fastapi import FastAPI, HTTPException, Request
 
+import acapy
 import config
 import credentials
 import home_assistant
 import owner
+import rpc
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
@@ -88,22 +90,50 @@ async def _handle_basic_message(payload: dict) -> None:
     if payload.get("state") != "received":
         return
 
-    connection_id = payload["connection_id"]
+    connection_id = payload.get("connection_id")
+    if not isinstance(connection_id, str):
+        logger.warning("Ignoring Basic Message without a connection id")
+        return
     try:
-        command = json.loads(payload["content"])
-        entity_id = command["entity_id"]
-        action = command["action"]
-        domain = entity_id.split(".", 1)[0]
-    except (KeyError, ValueError, json.JSONDecodeError):
-        logger.warning("Ignoring malformed command from %s: %r", connection_id, payload.get("content"))
+        request = rpc.parse_request(payload.get("content"))
+    except rpc.RpcError as error:
+        logger.warning("Rejected RPC request from %s: %s", connection_id, error)
+        await _send_rpc_response(connection_id, rpc.failure(error))
         return
 
-    if not credentials.is_authorised(connection_id, entity_id):
-        logger.info("Denied %s -> %s for connection %s", action, entity_id, connection_id)
+    if not credentials.is_authorised(connection_id, request.entity_id):
+        logger.info(
+            "Denied %s -> %s for connection %s",
+            request.action,
+            request.entity_id,
+            connection_id,
+        )
+        error = rpc.RpcError(-32001, "Not authorised", request.request_id)
+        await _send_rpc_response(connection_id, rpc.failure(error))
         return
 
-    await home_assistant.call_service(domain, action, entity_id)
-    logger.info("Executed %s -> %s for connection %s", action, entity_id, connection_id)
+    domain = request.entity_id.split(".", 1)[0]
+    try:
+        await home_assistant.call_service(domain, request.action, request.entity_id)
+    except httpx.HTTPError:
+        logger.exception("Home Assistant call failed for RPC request %s", request.request_id)
+        error = rpc.RpcError(-32603, "Home Assistant call failed", request.request_id)
+        await _send_rpc_response(connection_id, rpc.failure(error))
+        return
+    logger.info(
+        "Executed %s -> %s for connection %s",
+        request.action,
+        request.entity_id,
+        connection_id,
+    )
+    await _send_rpc_response(connection_id, rpc.success(request.request_id))
+
+
+async def _send_rpc_response(connection_id: str, content: str) -> None:
+    try:
+        await acapy.send_basic_message(connection_id, content)
+    except httpx.HTTPError:
+        logger.exception("Could not send RPC response to connection %s", connection_id)
 
 
 if __name__ == "__main__":

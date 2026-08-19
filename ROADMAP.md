@@ -105,8 +105,9 @@ pipeline.
   - [x] see connected agents
   - [x] issue a scoped/expiring credential to a connection
   - [x] revoke a credential/connection
-- [ ] `RPC`-style command schema instead of ad-hoc JSON over Basic Message
-      (evaluate the ACA-Py DIDComm RPC plugin here)
+- [x] JSON-RPC 2.0 command/response schema over Basic Message, with structured
+      authorization and execution errors (no maintained ACA-Py RPC plugin was
+      available in the official plugin repository)
 
 ## v0.0.5+ — Packaging for real Home Assistant users
 
