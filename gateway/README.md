@@ -123,3 +123,29 @@ These endpoints are unauthenticated development tools, like the issuance
 endpoint. Do not expose the gateway admin routes outside a trusted local
 environment.
 
+## v0.0.4: create an onboarding QR code
+
+Create a single-use OOB invitation and render it in the terminal:
+
+```powershell
+docker compose run --rm gateway python cli.py invite --label "My home"
+```
+
+The CLI prints both a QR code and the underlying invitation URL. Connections
+created from the invitation are accepted automatically by default. Pass
+`--manual-accept` to retain the manual acceptance flow from v0.0.1, or
+`--multi-use` when an invitation deliberately needs to onboard multiple
+agents. Treat invitation URLs as secrets and avoid using multi-use invitations
+unless necessary.
+
+The invitation advertises the ACA-Py `--endpoint` value. The Compose default
+(`http://acapy-home:8000`) works between the bundled development agents but is
+not reachable from a phone. Before scanning with an external wallet, recreate
+the home agent with an endpoint the wallet can reach, such as the host's LAN
+address with port 8000 exposed:
+
+```powershell
+$env:ACAPY_HOME_ENDPOINT = "http://192.168.1.10:8000"
+docker compose up -d --force-recreate acapy-home
+```
+

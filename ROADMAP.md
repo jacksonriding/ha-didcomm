@@ -99,7 +99,7 @@ pipeline.
 
 ## v0.0.4 — Onboarding UX
 
-- [ ] QR code (OOB invitation) rendered somewhere accessible (CLI first, HA
+- [x] QR code (OOB invitation) rendered somewhere accessible (CLI first, HA
       dashboard card later) for adding a new guest connection
 - [ ] Simple CLI or minimal web UI in the gateway for the owner to:
   - see connected agents

@@ -9,7 +9,7 @@ services:
       --admin 0.0.0.0 8021
       --admin-insecure-mode
       --webhook-url http://gateway:8080
-      --endpoint http://acapy-home:8000
+      --endpoint ${ACAPY_HOME_ENDPOINT:-http://acapy-home:8000}
       --no-ledger
       --wallet-type askar
       --wallet-name home

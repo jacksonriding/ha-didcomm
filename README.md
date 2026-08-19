@@ -47,11 +47,11 @@ The gateway is a small Python service that:
 
 ## Status
 
-v0.0.3 done: a DIDComm connection between two ACA-Py agents (`did:peer`, no
-ledger) can toggle a Home Assistant helper entity, gated by a verifiable
-credential (JSON-LD, no ledger) the home issues to that connection. See
-[ROADMAP.md](ROADMAP.md) for the full milestone plan, a known limitation
-around live credential-possession proofs, and what's next.
+v0.0.3 authorization is implemented, including persistent credentials and
+issuer-side revocation. Work on v0.0.4 onboarding has started with a CLI that
+creates an ACA-Py OOB invitation and renders it as a terminal QR code. See
+[ROADMAP.md](ROADMAP.md) for the full milestone plan and the known limitation
+around live credential-possession proofs.
 
 ## Getting started (dev)
 
