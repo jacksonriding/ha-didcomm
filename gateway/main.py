@@ -11,10 +11,10 @@ import logging
 
 from fastapi import FastAPI, HTTPException, Request
 
-import acapy
 import config
 import credentials
 import home_assistant
+import owner
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
@@ -46,16 +46,13 @@ async def admin_issue_credential(request: Request):
     """
     body = await request.json()
     connection_id = body["connection_id"]
-    credential = credentials.build_credential(
+    credential_exchange_id = await owner.issue_access_credential(
+        connection_id=connection_id,
         subject_did=body["subject_did"],
-        issuer_did=config.HOME_ISSUER_DID,
         role=body.get("role", "guest"),
         permissions=body["permissions"],
-        expires_iso=body.get("expires"),
+        expires=body.get("expires"),
     )
-    result = await acapy.issue_credential(connection_id, credential)
-    credential_exchange_id = result.get("cred_ex_id")
-    credentials.remember_issued(connection_id, credential, credential_exchange_id)
     return {"cred_ex_id": credential_exchange_id}
 
 

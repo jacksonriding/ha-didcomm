@@ -149,3 +149,36 @@ $env:ACAPY_HOME_ENDPOINT = "http://192.168.1.10:8000"
 docker compose up -d --force-recreate acapy-home
 ```
 
+### Owner access commands
+
+List connections known to the home agent:
+
+```powershell
+docker compose run --rm gateway python cli.py connections
+```
+
+Issue a credential. Repeat `--permission` for each allowed entity or pattern;
+`--expires` is optional and accepts an ISO 8601 timestamp:
+
+```powershell
+docker compose run --rm gateway python cli.py issue `
+  <connection_id> <subject_did> `
+  --role guest `
+  --permission "light.guest_*" `
+  --permission "input_boolean.ssi_test" `
+  --expires "2026-08-20T10:00:00Z"
+```
+
+The command prints the credential exchange id. Use it to revoke that one
+credential, or revoke every credential belonging to a connection:
+
+```powershell
+docker compose run --rm gateway python cli.py revoke-credential <cred_ex_id>
+docker compose run --rm gateway python cli.py revoke-connection <connection_id>
+```
+
+These owner commands operate directly against ACA-Py and the gateway's
+persistent credential volume, so the gateway web process does not need to be
+running. They still require the home ACA-Py container to be reachable for
+connection listing and issuance.
+

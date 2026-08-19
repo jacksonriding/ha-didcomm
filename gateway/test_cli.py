@@ -42,6 +42,62 @@ class OnboardingCliTests(unittest.TestCase):
         self.assertTrue(lines[0].isspace())
         self.assertTrue(lines[-1].isspace())
 
+    @patch("cli.acapy.list_connections", new_callable=AsyncMock)
+    def test_connections_lists_owner_relevant_fields(self, list_connections):
+        list_connections.return_value = [
+            {
+                "connection_id": "connection-1",
+                "rfc23_state": "completed",
+                "their_label": "Alice",
+                "their_did": "did:peer:4alice",
+            }
+        ]
+        output = io.StringIO()
+
+        with patch("sys.stdout", output):
+            cli.main(["connections"])
+
+        self.assertIn("connection-1\tcompleted\tAlice\tdid:peer:4alice", output.getvalue())
+
+    @patch("cli.owner.issue_access_credential", new_callable=AsyncMock)
+    def test_issue_accepts_multiple_permission_patterns(self, issue_credential):
+        issue_credential.return_value = "exchange-1"
+        output = io.StringIO()
+
+        with patch("sys.stdout", output):
+            cli.main(
+                [
+                    "issue",
+                    "connection-1",
+                    "did:key:holder",
+                    "--permission",
+                    "light.*",
+                    "--permission",
+                    "switch.guest_room",
+                    "--expires",
+                    "2026-08-20T00:00:00Z",
+                ]
+            )
+
+        issue_credential.assert_awaited_once_with(
+            connection_id="connection-1",
+            subject_did="did:key:holder",
+            role="guest",
+            permissions=["light.*", "switch.guest_room"],
+            expires="2026-08-20T00:00:00Z",
+        )
+        self.assertIn("exchange-1", output.getvalue())
+
+    @patch("cli.credentials.revoke_credential", return_value=True)
+    def test_revoke_credential_reports_success(self, revoke_credential):
+        output = io.StringIO()
+
+        with patch("sys.stdout", output):
+            cli.main(["revoke-credential", "exchange-1"])
+
+        revoke_credential.assert_called_once_with("exchange-1")
+        self.assertIn("exchange-1", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

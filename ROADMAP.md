@@ -101,10 +101,10 @@ pipeline.
 
 - [x] QR code (OOB invitation) rendered somewhere accessible (CLI first, HA
       dashboard card later) for adding a new guest connection
-- [ ] Simple CLI or minimal web UI in the gateway for the owner to:
-  - see connected agents
-  - issue a scoped/expiring credential to a connection
-  - revoke a credential/connection
+- [x] Gateway owner CLI to:
+  - [x] see connected agents
+  - [x] issue a scoped/expiring credential to a connection
+  - [x] revoke a credential/connection
 - [ ] `RPC`-style command schema instead of ad-hoc JSON over Basic Message
       (evaluate the ACA-Py DIDComm RPC plugin here)
 

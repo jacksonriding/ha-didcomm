@@ -44,6 +44,24 @@ class AcapyInvitationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "invitation_url"):
             await acapy.create_oob_invitation()
 
+    @patch("acapy.httpx.AsyncClient")
+    async def test_list_connections_returns_records(self, client_type):
+        client = AsyncMock()
+        client_type.return_value.__aenter__.return_value = client
+        response = Mock()
+        response.json.return_value = {
+            "results": [{"connection_id": "connection-1", "state": "active"}]
+        }
+        client.get.return_value = response
+
+        records = await acapy.list_connections()
+
+        self.assertEqual(records[0]["connection_id"], "connection-1")
+        client.get.assert_awaited_once_with(
+            f"{config.ACAPY_ADMIN_URL}/connections", headers=acapy._headers()
+        )
+        response.raise_for_status.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

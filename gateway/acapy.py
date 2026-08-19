@@ -47,6 +47,21 @@ async def create_oob_invitation(
     return invitation
 
 
+async def list_connections() -> list[dict]:
+    """Return connection records known to the home agent."""
+    url = f"{config.ACAPY_ADMIN_URL}/connections"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=_headers())
+        response.raise_for_status()
+        body = response.json()
+    records = body.get("results")
+    if not isinstance(records, list) or not all(
+        isinstance(record, dict) for record in records
+    ):
+        raise ValueError("ACA-Py response did not contain connection results")
+    return records
+
+
 async def issue_credential(connection_id: str, credential: dict) -> dict:
     """Issue a JSON-LD verifiable credential (no ledger/schema registration needed)."""
     url = f"{config.ACAPY_ADMIN_URL}/issue-credential-2.0/send"
