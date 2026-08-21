@@ -1,0 +1,61 @@
+name: Bug report
+description: Report reproducible behavior that does not work as documented
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Remove all tokens, keys, credentials,
+        invitations, private DIDs, certificates, and personal Home Assistant data.
+        Report security vulnerabilities through the process in SECURITY.md.
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Home Assistant OS or Supervised app
+        - Standalone Docker Compose
+        - Development Compose stack
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.0.9 or a commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Explain the observed behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Configure ...
+        2. Connect ...
+        3. Send ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Paste only logs that have been checked for sensitive information.
+      render: shell
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Sensitive-data check
+      options:
+        - label: I removed secrets and private smart-home or identity data.
+          required: true
+        - label: This is not a confidential security vulnerability.
+          required: true

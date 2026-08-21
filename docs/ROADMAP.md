@@ -122,6 +122,55 @@ pipeline.
   independently scoped home/issuer credentials, multiple Home Assistant config
   entries, cross-home isolation tests, and an operator guide
 
+## v0.0.9 — Open-source foundation
+
+**Status: implementation complete; release pending.**
+
+- [x] Adopt an OSI-approved license (Apache-2.0)
+- [x] Add contribution, conduct, and responsible-disclosure policies
+- [x] Run gateway tests, version checks, Python compilation, and Compose
+      validation in GitHub Actions
+- [x] Add structured bug and feature request templates and a pull request
+      checklist
+- [x] Add automated dependency-update configuration
+- [x] Check gateway release metadata against its changelog and release tag
+- [ ] Publish the `v0.0.9` tag and GitHub release after CI passes
+
+The Home Assistant app and custom integration are independently installable
+components and retain independent semantic versions. A repository release must
+match the app version in `gateway/config.yaml`; `scripts/check_versions.py`
+enforces this convention for release tags.
+
+## v0.1.0 — Usable alpha
+
+**Goal:** a new user can complete one documented path from installation to a
+revoked guest command without needing to understand ACA-Py's Admin API.
+
+- [ ] Publish one supported remote-controller or reference-agent workflow
+- [ ] Add an automated end-to-end smoke test covering invitation, connection,
+      credential issuance, authorized command, denial, and revocation
+- [ ] Provide Home Assistant owner controls for invitation, issuance, expiry,
+      and revocation instead of requiring Docker CLI commands
+- [ ] Test fresh installation, upgrade, backup, and restore on Home Assistant OS
+      and standalone Container deployments
+- [ ] Publish a compatibility matrix for Home Assistant, ACA-Py, Python,
+      architectures, and tested remote agents
+- [ ] Write a short troubleshooting guide based on clean-machine testing
+
+## v0.2.0 — Security beta
+
+**Goal:** close the known authorization gaps and document the resulting trust
+model before recommending use beyond experimentation.
+
+- [ ] Require a current proof of credential possession, or replace the current
+      VC claim with an accurately documented connection-capability model
+- [ ] Scope grants by Home Assistant service/action as well as entity
+- [ ] Add replay and duplicate-command protection
+- [ ] Authenticate or further minimize the externally reachable status API
+- [ ] Document abuse cases, trust boundaries, key compromise, backup exposure,
+      and recovery in a threat model
+- [ ] Obtain an independent security review and resolve high-severity findings
+
 ## Non-goals (for now)
 
 - Public ledger / blockchain-anchored DIDs
