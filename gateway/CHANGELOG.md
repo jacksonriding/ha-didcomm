@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.9
+
+- License the project under Apache-2.0 and add contribution, conduct, and
+  security policies.
+- Add gateway test and Compose validation workflows for pull requests.
+- Add reproducible development dependencies and automated release-version
+  consistency checks.
+- Add structured issue templates and publish the next usability and security
+  milestones.
+
 ## 0.0.8
 
 - Support independently scoped guest credentials across multiple homes.

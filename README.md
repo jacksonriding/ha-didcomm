@@ -53,10 +53,18 @@ Home Assistant packaging are implemented. See [the roadmap](docs/ROADMAP.md)
 for the current milestone and the known limitation around live
 credential-possession proofs.
 
+This is experimental software, not a production security boundary. In
+particular, do not rely on it as the only protection for locks, alarms, garage
+doors, or other safety-critical devices. See [SECURITY.md](SECURITY.md) before
+deploying it.
+
 ## Getting started (dev)
 
 See [the roadmap](docs/ROADMAP.md) for milestones and the
 [gateway guide](docs/GATEWAY.md) for local development and owner commands.
+
+For a contributor environment and the checks run in continuous integration,
+see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Home Assistant app (experimental)
 
@@ -96,3 +104,9 @@ To show DIDComm connections and credentials in Home Assistant's UI, install
 the [custom integration](docs/HOME_ASSISTANT_INTEGRATION.md).
 Multiple independently operated gateways can be added to the same Home
 Assistant instance; see the [multi-home guide](docs/MULTI_HOME.md).
+
+## Open source
+
+ha-didcomm is licensed under the [Apache License 2.0](LICENSE). Contributions
+are welcome; please read the [contribution guide](CONTRIBUTING.md),
+[code of conduct](CODE_OF_CONDUCT.md), and [security policy](SECURITY.md).
