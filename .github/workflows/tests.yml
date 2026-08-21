@@ -17,8 +17,8 @@ jobs:
         python-version: ["3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -38,7 +38,9 @@ jobs:
     name: Validate Compose distributions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Create development environment file
+        run: cp gateway/.env.example gateway/.env
       - name: Validate development stack
         run: docker compose -f compose.yml config --quiet
       - name: Validate standalone stack
