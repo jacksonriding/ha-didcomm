@@ -49,7 +49,7 @@ services:
       context: ./gateway
       target: gateway
     env_file:
-      - ./gateway/.env
+      - ${GATEWAY_ENV_FILE:-./gateway/.env}
     environment:
       ACAPY_ADMIN_API_KEY: change-me-home-admin
       CREDENTIAL_STORE_PATH: /data/credentials.sqlite3
@@ -94,4 +94,3 @@ volumes:
   acapy-home-wallet:
   acapy-user-wallet:
   gateway-data:
-

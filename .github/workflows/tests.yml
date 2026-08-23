@@ -51,3 +51,12 @@ jobs:
         run: >-
           docker compose --env-file .env.controller.example
           -f compose.controller.yml config --quiet
+
+  smoke:
+    name: Docker end-to-end smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run invitation-to-revocation workflow
+        run: python scripts/docker_smoke_test.py

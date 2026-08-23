@@ -148,8 +148,9 @@ revoked guest command without needing to understand ACA-Py's Admin API.
 
 - [x] Publish one supported remote-controller or reference-agent workflow
       (`compose.controller.yml` and `docs/CONTROLLER.md`)
-- [ ] Add an automated end-to-end smoke test covering invitation, connection,
+- [x] Add an automated end-to-end smoke test covering invitation, connection,
       credential issuance, authorized command, denial, and revocation
+      (`scripts/docker_smoke_test.py`)
 - [ ] Provide Home Assistant owner controls for invitation, issuance, expiry,
       and revocation instead of requiring Docker CLI commands
 - [ ] Test fresh installation, upgrade, backup, and restore on Home Assistant OS

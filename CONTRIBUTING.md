@@ -42,6 +42,16 @@ docker compose --env-file .env.standalone.example `
   -f compose.standalone.yml config --quiet
 ```
 
+With Docker available, run the complete invitation, credential, command,
+denial, and revocation workflow:
+
+```powershell
+python scripts/docker_smoke_test.py
+```
+
+The smoke test uses isolated Compose project names and temporary configuration.
+It removes its containers, networks, and volumes even when a check fails.
+
 The manual DIDComm and Home Assistant test is documented in
 [docs/GATEWAY.md](docs/GATEWAY.md). Never use a production Home Assistant
 token in the development stack.

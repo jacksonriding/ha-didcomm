@@ -4,6 +4,8 @@
 
 - Add a persistent reference-controller Compose stack and CLI for accepting
   invitations, managing a holder DID, and sending commands with reply handling.
+- Exercise invitation, credential issuance, authorization, denial, and
+  revocation in an automated Docker smoke test.
 - License the project under Apache-2.0 and add contribution, conduct, and
   security policies.
 - Add gateway test and Compose validation workflows for pull requests.
