@@ -71,6 +71,65 @@ The `acapy-wallet` and `gateway-data` named volumes contain identity keys and
 authorization records. Back them up before upgrades and never run
 `docker compose down --volumes` unless you intend to erase the deployment.
 
+The `.env.standalone` file contains the secrets and issuer DID needed to open
+those volumes. Back it up separately in a secure secret store. Certificate and
+private-key files are external bind mounts and must also be backed up through
+your normal certificate-management process.
+
+### Cold backup
+
+Run these commands from the repository directory. The default volume names
+assume the Compose project is named `ha-didcomm`; use `docker volume ls` first
+if you set a different `COMPOSE_PROJECT_NAME`.
+
+```bash
+backup_directory="$PWD/backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -m 700 "$backup_directory"
+docker compose --env-file .env.standalone -f compose.standalone.yml stop
+docker run --rm -v ha-didcomm_acapy-wallet:/source:ro \
+  -v "$backup_directory:/backup" python:3.14-slim \
+  tar -C /source -czf /backup/acapy-wallet.tar.gz .
+docker run --rm -v ha-didcomm_gateway-data:/source:ro \
+  -v "$backup_directory:/backup" python:3.14-slim \
+  tar -C /source -czf /backup/gateway-data.tar.gz .
+docker compose --env-file .env.standalone -f compose.standalone.yml start
+```
+
+Confirm both archives are non-empty and store them together with the protected
+environment-file backup. The services must remain stopped while both archives
+are created so the wallet and authorization database represent one point in
+time.
+
+### Restore
+
+Restore only into an empty deployment using the same wallet key, Admin API
+key, home ID, issuer DID, and owner token:
+
+```bash
+docker compose --env-file .env.standalone -f compose.standalone.yml down
+docker volume create ha-didcomm_acapy-wallet
+docker volume create ha-didcomm_gateway-data
+docker run --rm -v ha-didcomm_acapy-wallet:/restore \
+  -v "$backup_directory:/backup:ro" python:3.14-slim \
+  tar -C /restore -xzf /backup/acapy-wallet.tar.gz
+docker run --rm -v ha-didcomm_gateway-data:/restore \
+  -v "$backup_directory:/backup:ro" python:3.14-slim \
+  tar -C /restore -xzf /backup/gateway-data.tar.gz
+docker compose --env-file .env.standalone -f compose.standalone.yml up -d --build
+```
+
+After an upgrade or restore, verify `/health`, confirm that `/status` reports
+the original `instance_id` and credential records, then perform a test owner
+operation. The automated rehearsal performs these checks destructively in a
+randomly named project without touching the normal volumes:
+
+```bash
+python3 scripts/docker_lifecycle_test.py
+```
+
+See the complete evidence checklist in
+[deployment validation](DEPLOYMENT_VALIDATION.md).
+
 Only the TLS proxy is published, on port 8443 by default. ACA-Py's
 API-key-protected Admin API and legacy gateway mutation API remain accessible
 solely within the Compose network. The published owner API requires its

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.11
+
+- Add an isolated standalone lifecycle test covering fresh installation,
+  container replacement, cold backup, destructive volume loss, restore, and
+  post-restore owner operations.
+- Document repeatable standalone and Home Assistant OS validation procedures,
+  including the identity and authorization state that must survive.
+
 ## 0.0.10
 
 - Add bearer-authenticated owner endpoints for invitation creation, expiring

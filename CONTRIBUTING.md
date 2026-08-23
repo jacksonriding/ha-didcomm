@@ -52,6 +52,14 @@ python scripts/docker_smoke_test.py
 The smoke test uses isolated Compose project names and temporary configuration.
 It removes its containers, networks, and volumes even when a check fails.
 
+Deployment or persistence changes must also pass the destructive lifecycle
+rehearsal. It uses random project and volume names, validates a cold backup and
+restore, and removes the isolated resources afterward:
+
+```powershell
+python scripts/docker_lifecycle_test.py
+```
+
 The manual DIDComm and Home Assistant test is documented in
 [docs/GATEWAY.md](docs/GATEWAY.md). Never use a production Home Assistant
 token in the development stack.

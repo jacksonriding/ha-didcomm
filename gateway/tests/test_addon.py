@@ -64,6 +64,17 @@ class AddonTests(unittest.TestCase):
         request = urlopen.call_args.args[0]
         self.assertEqual(request.get_header("X-api-key"), "admin-secret")
 
+    @patch("ha_didcomm.addon.urlopen")
+    def test_issuer_did_is_reused_after_restore(self, urlopen):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "issuer-did"
+            path.write_text("did:key:restored", encoding="utf-8")
+
+            did = addon.issuer_did(path, "admin-secret")
+
+        self.assertEqual(did, "did:key:restored")
+        urlopen.assert_not_called()
+
     def test_tls_file_rejects_traversal_and_requires_existing_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)

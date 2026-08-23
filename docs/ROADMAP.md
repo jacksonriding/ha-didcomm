@@ -134,7 +134,7 @@ pipeline.
       checklist
 - [x] Add automated dependency-update configuration
 - [x] Check gateway release metadata against its changelog and release tag
-- [ ] Publish the `v0.0.10` tag and GitHub release after CI passes
+- [ ] Publish the `v0.0.11` tag and GitHub release after CI passes
 
 The Home Assistant app and custom integration are independently installable
 components and retain independent semantic versions. A repository release must
@@ -155,6 +155,11 @@ revoked guest command without needing to understand ACA-Py's Admin API.
       and revocation instead of requiring Docker CLI commands
 - [ ] Test fresh installation, upgrade, backup, and restore on Home Assistant OS
       and standalone Container deployments
+  - [x] Automate the destructive standalone lifecycle in an isolated Docker
+        project (`scripts/docker_lifecycle_test.py`)
+  - [x] Publish a repeatable Home Assistant OS validation checklist
+        (`docs/DEPLOYMENT_VALIDATION.md`)
+  - [ ] Record a successful checklist run on physical Home Assistant OS
 - [ ] Publish a compatibility matrix for Home Assistant, ACA-Py, Python,
       architectures, and tested remote agents
 - [ ] Write a short troubleshooting guide based on clean-machine testing

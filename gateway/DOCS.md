@@ -44,3 +44,7 @@ The app refuses to start when `public_endpoint` is not HTTPS or when its
 certificate files are missing. ACA-Py's Admin API key is generated once,
 stored under `/data`, and reused across upgrades. An absent or weak owner token
 leaves status monitoring available but disables every `/owner/` operation.
+
+Before a release, follow the Home Assistant OS fresh-install, upgrade, and
+backup/restore procedure in the
+[deployment validation checklist](../docs/DEPLOYMENT_VALIDATION.md).
