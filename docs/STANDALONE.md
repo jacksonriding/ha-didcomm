@@ -70,3 +70,6 @@ host-side port and keep `ACAPY_PUBLIC_ENDPOINT` in sync.
 The optional [Home Assistant custom integration](HOME_ASSISTANT_INTEGRATION.md)
 uses the same HTTPS URL as `ACAPY_PUBLIC_ENDPOINT`; the proxy routes its
 `/status` requests to the read-only API.
+
+Continue with the [reference controller guide](CONTROLLER.md) to connect a
+second machine, issue it scoped access, and send a complete command round trip.

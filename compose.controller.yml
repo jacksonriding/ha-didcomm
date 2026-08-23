@@ -1,0 +1,82 @@
+services:
+  wallet-init:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    user: root
+    entrypoint: ["sh", "-c"]
+    command: ["chown -R 1001:1001 /wallet"]
+    volumes:
+      - controller-wallet:/wallet
+    restart: "no"
+
+  controller-agent:
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    environment:
+      ACAPY_ADMIN_API_KEY: ${CONTROLLER_ADMIN_API_KEY:?Set CONTROLLER_ADMIN_API_KEY}
+    command: >
+      start
+      --label ${CONTROLLER_LABEL:-ha-didcomm-controller}
+      --inbound-transport http 0.0.0.0 8010
+      --outbound-transport http
+      --admin 0.0.0.0 8031
+      --webhook-url http://controller-inbox:8081
+      --endpoint ${CONTROLLER_PUBLIC_ENDPOINT:?Set CONTROLLER_PUBLIC_ENDPOINT}
+      --no-ledger
+      --wallet-type askar
+      --wallet-name controller
+      --wallet-key ${CONTROLLER_WALLET_KEY:?Set CONTROLLER_WALLET_KEY}
+      --auto-provision
+      --auto-respond-credential-offer
+      --auto-store-credential
+      --log-level ${LOG_LEVEL:-info}
+    ports:
+      - "${CONTROLLER_PORT:-8010}:8010"
+    volumes:
+      - controller-wallet:/home/aries/.acapy_agent/wallet
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; from urllib.request import Request,urlopen; r=Request('http://127.0.0.1:8031/status/live',headers={'X-API-Key':os.environ['ACAPY_ADMIN_API_KEY']}); urlopen(r,timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      wallet-init:
+        condition: service_completed_successfully
+
+  controller-inbox:
+    build:
+      context: ./gateway
+      target: gateway
+    command: ["python", "-m", "uvicorn", "ha_didcomm.controller:app", "--host", "0.0.0.0", "--port", "8081"]
+    environment:
+      CONTROLLER_RESPONSE_STORE_PATH: /data/responses.sqlite3
+    volumes:
+      - controller-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8081/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  controller:
+    build:
+      context: ./gateway
+      target: gateway
+    entrypoint: ["python", "-m", "ha_didcomm.controller"]
+    environment:
+      CONTROLLER_ACAPY_ADMIN_URL: http://controller-agent:8031
+      CONTROLLER_ACAPY_ADMIN_API_KEY: ${CONTROLLER_ADMIN_API_KEY:?Set CONTROLLER_ADMIN_API_KEY}
+      CONTROLLER_RESPONSE_STORE_PATH: /data/responses.sqlite3
+    volumes:
+      - controller-data:/data
+    depends_on:
+      controller-agent:
+        condition: service_healthy
+      controller-inbox:
+        condition: service_healthy
+
+volumes:
+  controller-wallet:
+  controller-data:

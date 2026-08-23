@@ -47,3 +47,7 @@ jobs:
         run: >-
           docker compose --env-file .env.standalone.example
           -f compose.standalone.yml config --quiet
+      - name: Validate reference controller stack
+        run: >-
+          docker compose --env-file .env.controller.example
+          -f compose.controller.yml config --quiet

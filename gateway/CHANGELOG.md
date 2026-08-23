@@ -2,6 +2,8 @@
 
 ## 0.0.9
 
+- Add a persistent reference-controller Compose stack and CLI for accepting
+  invitations, managing a holder DID, and sending commands with reply handling.
 - License the project under Apache-2.0 and add contribution, conduct, and
   security policies.
 - Add gateway test and Compose validation workflows for pull requests.

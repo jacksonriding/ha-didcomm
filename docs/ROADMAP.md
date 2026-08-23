@@ -146,7 +146,8 @@ enforces this convention for release tags.
 **Goal:** a new user can complete one documented path from installation to a
 revoked guest command without needing to understand ACA-Py's Admin API.
 
-- [ ] Publish one supported remote-controller or reference-agent workflow
+- [x] Publish one supported remote-controller or reference-agent workflow
+      (`compose.controller.yml` and `docs/CONTROLLER.md`)
 - [ ] Add an automated end-to-end smoke test covering invitation, connection,
       credential issuance, authorized command, denial, and revocation
 - [ ] Provide Home Assistant owner controls for invitation, issuance, expiry,

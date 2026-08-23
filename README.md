@@ -88,6 +88,11 @@ Home Assistant Container users can instead use
 [standalone guide](docs/STANDALONE.md) for setup, persistence, and owner
 commands.
 
+To exercise the guest side from another computer or Raspberry Pi, use the
+[reference remote controller](docs/CONTROLLER.md). It provides a persistent
+ACA-Py identity and simple commands for accepting an invitation and calling an
+authorized Home Assistant service.
+
 ## Repository layout
 
 ```text
@@ -98,6 +103,7 @@ gateway/src/ha_didcomm/  Python gateway package
 gateway/tests/           Automated gateway tests
 compose.yml              Local two-agent development stack
 compose.standalone.yml   Standalone deployment stack
+compose.controller.yml   Reference remote-controller stack
 ```
 
 To show DIDComm connections and credentials in Home Assistant's UI, install
