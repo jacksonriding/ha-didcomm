@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.10
+
+- Add bearer-authenticated owner endpoints for invitation creation, expiring
+  credential issuance, and credential or connection revocation.
+- Add native, administrator-only Home Assistant actions for the complete owner
+  workflow while preserving read-only upgrades.
+- Publish owner endpoints through the TLS proxy without exposing ACA-Py's Admin
+  API, and cover the authenticated workflow in automated tests.
+
 ## 0.0.9
 
 - Add a persistent reference-controller Compose stack and CLI for accepting

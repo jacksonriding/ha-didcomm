@@ -1,4 +1,5 @@
 """Configuration loaded from environment variables (see .env.example)."""
+
 import os
 
 from dotenv import load_dotenv
@@ -32,4 +33,6 @@ HOME_ID = os.getenv("HOME_ID", "jackson-home")
 # aren't resolvable without a ledger, so JSON-LD signing needs a did:key).
 HOME_ISSUER_DID = os.getenv("HOME_ISSUER_DID", "")
 
-
+# Optional for upgrade compatibility. Owner endpoints remain unavailable until
+# a strong token is configured.
+OWNER_API_TOKEN = os.getenv("OWNER_API_TOKEN", "")

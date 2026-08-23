@@ -134,7 +134,7 @@ pipeline.
       checklist
 - [x] Add automated dependency-update configuration
 - [x] Check gateway release metadata against its changelog and release tag
-- [ ] Publish the `v0.0.9` tag and GitHub release after CI passes
+- [ ] Publish the `v0.0.10` tag and GitHub release after CI passes
 
 The Home Assistant app and custom integration are independently installable
 components and retain independent semantic versions. A repository release must
@@ -151,7 +151,7 @@ revoked guest command without needing to understand ACA-Py's Admin API.
 - [x] Add an automated end-to-end smoke test covering invitation, connection,
       credential issuance, authorized command, denial, and revocation
       (`scripts/docker_smoke_test.py`)
-- [ ] Provide Home Assistant owner controls for invitation, issuance, expiry,
+- [x] Provide Home Assistant owner controls for invitation, issuance, expiry,
       and revocation instead of requiring Docker CLI commands
 - [ ] Test fresh installation, upgrade, backup, and restore on Home Assistant OS
       and standalone Container deployments

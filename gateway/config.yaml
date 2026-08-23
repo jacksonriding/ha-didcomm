@@ -1,5 +1,5 @@
 name: ha-didcomm
-version: "0.0.9"
+version: "0.0.10"
 slug: ha_didcomm
 description: DIDComm and verifiable-credential access control for Home Assistant
 url: https://github.com/jacksonriding/ha-didcomm
@@ -23,10 +23,12 @@ options:
   log_level: info
   certfile: fullchain.pem
   keyfile: privkey.pem
+  owner_api_token: ""
 schema:
   public_endpoint: url
   home_id: str
   log_level: list(debug|info|warning|error)
   certfile: str
   keyfile: str
+  owner_api_token: password
 backup: cold

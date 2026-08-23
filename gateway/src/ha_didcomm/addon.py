@@ -1,4 +1,5 @@
 """Process supervisor for the Home Assistant app image."""
+
 import json
 import os
 import re
@@ -59,6 +60,9 @@ http {{
         client_max_body_size 10m;
         location = /health {{ proxy_pass http://127.0.0.1:8090/health; }}
         location = /status {{ proxy_pass http://127.0.0.1:8090/status; }}
+        location /owner/ {{
+            proxy_pass http://127.0.0.1:8090;
+        }}
         location / {{
             proxy_pass http://127.0.0.1:8000;
             proxy_http_version 1.1;
@@ -100,9 +104,7 @@ def wait_for_admin(
 def issuer_did(path: Path, api_key: str) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
-    body = json.dumps(
-        {"method": "key", "options": {"key_type": "ed25519"}}
-    ).encode()
+    body = json.dumps({"method": "key", "options": {"key_type": "ed25519"}}).encode()
     request = admin_request(
         f"{ADMIN_URL}/wallet/did/create",
         api_key,
@@ -114,6 +116,20 @@ def issuer_did(path: Path, api_key: str) -> str:
         did = json.load(response)["result"]["did"]
     path.write_text(did, encoding="utf-8")
     return did
+
+
+def gateway_environment(
+    options: dict, admin_api_key: str, home_issuer_did: str
+) -> dict[str, str]:
+    """Build the private environment shared by both gateway API processes."""
+    return {
+        "ACAPY_ADMIN_URL": ADMIN_URL,
+        "ACAPY_ADMIN_API_KEY": admin_api_key,
+        "CREDENTIAL_STORE_PATH": str(DATA_DIR / "credentials.sqlite3"),
+        "HOME_ID": options.get("home_id", "home"),
+        "HOME_ISSUER_DID": home_issuer_did,
+        "OWNER_API_TOKEN": options.get("owner_api_token", ""),
+    }
 
 
 def main() -> int:
@@ -130,12 +146,33 @@ def main() -> int:
     wallet_key = persistent_secret(DATA_DIR / "wallet-key")
     admin_api_key = persistent_secret(DATA_DIR / "admin-api-key")
     acapy_command = [
-        "aca-py", "start", "--label", "ha-didcomm", "--inbound-transport",
-        "http", "127.0.0.1", "8000", "--outbound-transport", "http", "--admin",
-        "127.0.0.1", "8021", "--webhook-url",
-        "http://127.0.0.1:8080", "--endpoint", options["public_endpoint"],
-        "--no-ledger", "--wallet-type", "askar", "--wallet-name", "home",
-        "--wallet-key", wallet_key, "--auto-provision", "--log-level", log_level,
+        "aca-py",
+        "start",
+        "--label",
+        "ha-didcomm",
+        "--inbound-transport",
+        "http",
+        "127.0.0.1",
+        "8000",
+        "--outbound-transport",
+        "http",
+        "--admin",
+        "127.0.0.1",
+        "8021",
+        "--webhook-url",
+        "http://127.0.0.1:8080",
+        "--endpoint",
+        options["public_endpoint"],
+        "--no-ledger",
+        "--wallet-type",
+        "askar",
+        "--wallet-name",
+        "home",
+        "--wallet-key",
+        wallet_key,
+        "--auto-provision",
+        "--log-level",
+        log_level,
     ]
     acapy_environment = os.environ.copy()
     acapy_environment["ACAPY_HOME"] = str(DATA_DIR / "acapy")
@@ -161,15 +198,11 @@ def main() -> int:
         wait_for_admin(acapy_process, admin_api_key)
         environment = os.environ.copy()
         environment.update(
-            {
-                "ACAPY_ADMIN_URL": ADMIN_URL,
-                "ACAPY_ADMIN_API_KEY": admin_api_key,
-                "CREDENTIAL_STORE_PATH": str(DATA_DIR / "credentials.sqlite3"),
-                "HOME_ID": options.get("home_id", "home"),
-                "HOME_ISSUER_DID": issuer_did(
-                    DATA_DIR / "issuer-did", admin_api_key
-                ),
-            }
+            gateway_environment(
+                options,
+                admin_api_key,
+                issuer_did(DATA_DIR / "issuer-did", admin_api_key),
+            )
         )
         gateway_process = subprocess.Popen(
             [

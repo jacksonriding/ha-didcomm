@@ -77,6 +77,8 @@ https://github.com/jacksonriding/ha-didcomm
 
 Install **ha-didcomm**, select Supervisor-managed TLS certificate files, set
 `public_endpoint` to the matching HTTPS URL on port 8000, and start the app.
+Generate and configure a separate `owner_api_token` to enable the custom
+integration's administrator-only onboarding and revocation actions.
 The app bundles ACA-Py, a TLS proxy, and the gateway, stores identity data
 under the Supervisor-managed `/data` volume, and uses the Home Assistant API
 proxy with `SUPERVISOR_TOKEN`. It does not require a long-lived Home Assistant

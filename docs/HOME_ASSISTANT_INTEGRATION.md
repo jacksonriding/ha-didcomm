@@ -2,7 +2,8 @@
 
 The `ha_didcomm` custom integration shows each DIDComm connection and issued
 access credential as an entity in Home Assistant. It polls the gateway's
-read-only status API every 30 seconds; it cannot issue or revoke credentials.
+read-only status API every 30 seconds and provides administrator-only actions
+for invitation, issuance, expiry, and revocation.
 
 ## Install
 
@@ -19,8 +20,9 @@ The resulting path inside Home Assistant must be:
 ```
 
 Restart Home Assistant, then open **Settings > Devices & services > Add
-integration**, search for **ha-didcomm**, and enter the status API URL. For a
-default Home Assistant app installation, use:
+integration**, search for **ha-didcomm**, and enter the gateway URL and the
+same owner token configured on the app or standalone gateway. For a default
+Home Assistant app installation, use:
 
 ```text
 https://homeassistant.local:8000
@@ -44,12 +46,45 @@ See [multi-home delegated access](MULTI_HOME.md) for the isolation model.
   role, permissions, subject DID, issuance, expiry, and revocation metadata.
 - Credential attributes include the issuing home ID and issuer DID.
 - New connections and credentials are discovered without reloading the
-  integration.
+integration.
 
-The TLS proxy exposes sanitized `/status` and `/health` routes alongside the
-DIDComm listener. Connection identifiers and access scopes are still
-operational metadata. Mutation, webhook, and ACA-Py Admin routes remain on the
-private container network.
+## Owner actions
+
+The integration registers these actions for Home Assistant administrators:
+
+- `ha_didcomm.create_invitation` creates a single-use invitation and returns
+  its URL.
+- `ha_didcomm.issue_credential` grants one or more entity patterns for a
+  required duration between 1 and 8760 hours.
+- `ha_didcomm.revoke_credential` revokes one credential exchange ID.
+- `ha_didcomm.revoke_connection` revokes all credentials for a connection.
+
+Every action requires `config_entry_id`, which selects the home gateway. Find
+connection IDs, subject DIDs, and credential exchange IDs in the integration's
+sensor attributes. For example, in **Developer tools > Actions**:
+
+```yaml
+action: ha_didcomm.issue_credential
+data:
+  config_entry_id: 01EXAMPLEENTRY
+  connection_id: connection-id-from-the-sensor
+  subject_did: did:key:guest-holder-did
+  permissions:
+    - light.guest_*
+    - switch.guest_room
+  role: guest
+  duration_hours: 24
+```
+
+Request response data when creating an invitation or issuing a credential to
+use `invitation_url`, `cred_ex_id`, or `expires_at` in an automation. Entries
+upgraded from integration version 0.2 remain read-only until reconfigured with
+an owner token.
+
+The TLS proxy exposes sanitized `/status` and `/health` routes plus the
+bearer-authenticated `/owner/` surface alongside the DIDComm listener.
+Connection identifiers and access scopes are still operational metadata.
+Webhook, legacy mutation, and ACA-Py Admin routes remain private.
 
 ## Development
 

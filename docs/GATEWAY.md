@@ -13,12 +13,14 @@ docker compose up -d --build
 
 This starts `acapy-home` (admin API on :8021, inbound on :8000), `acapy-user`
 (admin :8031, inbound :8010, representing the remote agent) and `gateway`
-(webhooks and owner routes on :8080, read-only status on :8090). Before
-starting:
+(webhooks and development admin routes on :8080, status and authenticated
+owner routes on :8090). Before starting:
 
 - Copy `gateway/.env.example` to `gateway/.env` and fill in your Home
   Assistant `HA_BASE_URL` and a long-lived access token (`HA_TOKEN`).
   `gateway/.env` is gitignored — it's deployment-specific, not committed.
+- Generate a separate `OWNER_API_TOKEN` with at least 32 characters. The
+  Home Assistant integration uses it only for administrator-only owner actions.
 - Create an `input_boolean.ssi_test` helper in Home Assistant.
 
 The Compose agents and gateway use named volumes for their wallets and
@@ -218,4 +220,3 @@ is `homeassistant.call_service`, with `action` and `entity_id` parameters:
 The gateway replies over the same DIDComm connection with a JSON-RPC result or
 a structured error. Authorization failures use code `-32001`; standard parse,
 request, method, and parameter errors use the corresponding JSON-RPC codes.
-

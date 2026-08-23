@@ -63,6 +63,7 @@ services:
       HA_TOKEN: ${HA_TOKEN:?Set HA_TOKEN in .env.standalone}
       HOME_ID: ${HOME_ID:-home}
       HOME_ISSUER_DID: ${HOME_ISSUER_DID:?Set HOME_ISSUER_DID in .env.standalone}
+      OWNER_API_TOKEN: ${OWNER_API_TOKEN:-}
       GATEWAY_HOST: 0.0.0.0
       GATEWAY_PORT: 8080
       STATUS_HOST: 0.0.0.0

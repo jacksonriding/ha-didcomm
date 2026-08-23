@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Run the complete gateway/controller workflow against real Docker services."""
+
 from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import time
-from urllib.error import URLError
-from urllib.request import Request, urlopen
 import uuid
-
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME_COMPOSE = ROOT / "compose.yml"
@@ -50,10 +50,13 @@ def request_json(
     method: str = "GET",
     body: dict | None = None,
     api_key: str | None = None,
+    bearer_token: str | None = None,
 ) -> dict:
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["X-API-Key"] = api_key
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
     payload = json.dumps(body).encode() if body is not None else None
     request = Request(url, data=payload, headers=headers, method=method)
     with urlopen(request, timeout=15) as response:
@@ -64,13 +67,17 @@ def request_json(
 
 
 def wait_for_json(
-    url: str, *, api_key: str | None = None, timeout: float = 60
+    url: str,
+    *,
+    api_key: str | None = None,
+    bearer_token: str | None = None,
+    timeout: float = 60,
 ) -> dict:
     deadline = time.monotonic() + timeout
     last_error: Exception | None = None
     while time.monotonic() < deadline:
         try:
-            return request_json(url, api_key=api_key)
+            return request_json(url, api_key=api_key, bearer_token=bearer_token)
         except (OSError, URLError, ValueError) as error:
             last_error = error
             time.sleep(1)
@@ -106,6 +113,7 @@ def main() -> int:
     suffix = uuid.uuid4().hex[:8]
     home_project = f"ha-didcomm-smoke-home-{suffix}"
     controller_project = f"ha-didcomm-smoke-controller-{suffix}"
+    owner_token = f"docker-smoke-owner-{uuid.uuid4().hex}"
 
     with tempfile.TemporaryDirectory(prefix="ha-didcomm-smoke-") as directory:
         temporary = Path(directory)
@@ -175,6 +183,7 @@ def main() -> int:
                 "HA_TOKEN": "smoke-ha-token",
                 "HOME_ID": "docker-smoke-home",
                 "HOME_ISSUER_DID": "did:key:pending",
+                "OWNER_API_TOKEN": owner_token,
             },
         )
 
@@ -231,10 +240,22 @@ def main() -> int:
                     "HA_TOKEN": "smoke-ha-token",
                     "HOME_ID": "docker-smoke-home",
                     "HOME_ISSUER_DID": issuer,
+                    "OWNER_API_TOKEN": owner_token,
                 },
             )
             run([*home, "up", "-d", "--build", "gateway"], env=compose_env)
             wait_for_json("http://127.0.0.1:8080/health")
+            wait_for_json(
+                "http://127.0.0.1:8090/owner/health",
+                bearer_token=owner_token,
+            )
+            try:
+                request_json("http://127.0.0.1:8090/owner/health")
+            except HTTPError as error:
+                if error.code != 401:
+                    raise
+            else:
+                raise SmokeFailure("owner API accepted an unauthenticated request")
 
             print("Starting reference controller...")
             run([*controller, "build", "controller", "controller-inbox"])
@@ -273,16 +294,10 @@ def main() -> int:
                 return result
 
             invitation = request_json(
-                "http://127.0.0.1:8021/out-of-band/create-invitation"
-                "?auto_accept=true&multi_use=false",
+                "http://127.0.0.1:8090/owner/invitations",
                 method="POST",
-                api_key="change-me-home-admin",
-                body={
-                    "handshake_protocols": ["https://didcomm.org/didexchange/1.1"],
-                    "protocol_version": "1.1",
-                    "use_did_method": "did:peer:4",
-                    "my_label": "Docker smoke home",
-                },
+                bearer_token=owner_token,
+                body={"label": "Docker smoke home"},
             )
             controller_cli("connect", invitation["invitation_url"])
 
@@ -324,17 +339,21 @@ def main() -> int:
                     f"controller returned invalid holder DID: {holder_did}"
                 )
             issued = request_json(
-                "http://127.0.0.1:8080/admin/issue-credential",
+                "http://127.0.0.1:8090/owner/credentials",
                 method="POST",
+                bearer_token=owner_token,
                 body={
                     "connection_id": home_connection_id,
                     "subject_did": holder_did,
                     "role": "guest",
                     "permissions": [PERMITTED_ENTITY],
+                    "duration_hours": 24,
                 },
             )
-            if not issued.get("cred_ex_id"):
-                raise SmokeFailure("gateway did not return a credential exchange id")
+            if not issued.get("cred_ex_id") or not issued.get("expires_at"):
+                raise SmokeFailure(
+                    "gateway did not return credential and expiry metadata"
+                )
 
             print("Checking authorized and unauthorized commands...")
             allowed = parse_rpc(
@@ -361,8 +380,9 @@ def main() -> int:
 
             print("Revoking access and checking immediate enforcement...")
             request_json(
-                f"http://127.0.0.1:8080/admin/revoke-connection/{home_connection_id}",
+                f"http://127.0.0.1:8090/owner/connections/{home_connection_id}/revoke",
                 method="POST",
+                bearer_token=owner_token,
                 body={},
             )
             revoked_result = controller_cli(

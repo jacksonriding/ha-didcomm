@@ -6,5 +6,5 @@
   "documentation": "https://github.com/jacksonriding/ha-didcomm",
   "integration_type": "service",
   "iot_class": "local_polling",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

@@ -39,6 +39,17 @@ class AddonTests(unittest.TestCase):
 
         self.assertEqual(request.get_header("X-api-key"), "secret")
 
+    def test_gateway_environment_propagates_owner_token(self):
+        environment = addon.gateway_environment(
+            {"home_id": "test-home", "owner_api_token": "owner-secret"},
+            "admin-secret",
+            "did:key:issuer",
+        )
+
+        self.assertEqual(environment["OWNER_API_TOKEN"], "owner-secret")
+        self.assertEqual(environment["ACAPY_ADMIN_API_KEY"], "admin-secret")
+        self.assertEqual(environment["HOME_ISSUER_DID"], "did:key:issuer")
+
     @patch("ha_didcomm.addon.urlopen")
     def test_issuer_did_uses_authenticated_request(self, urlopen):
         response = urlopen.return_value.__enter__.return_value
@@ -59,9 +70,7 @@ class AddonTests(unittest.TestCase):
             certificate = directory / "fullchain.pem"
             certificate.write_text("certificate", encoding="utf-8")
 
-            self.assertEqual(
-                addon.tls_file("fullchain.pem", directory), certificate
-            )
+            self.assertEqual(addon.tls_file("fullchain.pem", directory), certificate)
             with self.assertRaises(ValueError):
                 addon.tls_file("../fullchain.pem", directory)
             with self.assertRaises(FileNotFoundError):
@@ -80,4 +89,6 @@ class AddonTests(unittest.TestCase):
         self.assertIn("listen 8443 ssl", nginx_config)
         self.assertIn("proxy_pass http://127.0.0.1:8000", nginx_config)
         self.assertIn("location = /status", nginx_config)
+        self.assertIn("location /owner/", nginx_config)
+        self.assertIn("proxy_pass http://127.0.0.1:8090", nginx_config)
         self.assertNotIn("8021", nginx_config)

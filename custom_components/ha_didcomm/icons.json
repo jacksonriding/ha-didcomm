@@ -1,0 +1,8 @@
+{
+  "services": {
+    "create_invitation": {"service": "mdi:qrcode"},
+    "issue_credential": {"service": "mdi:card-account-details-star"},
+    "revoke_credential": {"service": "mdi:card-off"},
+    "revoke_connection": {"service": "mdi:account-cancel"}
+  }
+}

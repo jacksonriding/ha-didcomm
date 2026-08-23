@@ -1,0 +1,64 @@
+create_invitation:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ha_didcomm
+    label:
+      selector:
+        text:
+issue_credential:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ha_didcomm
+    connection_id:
+      required: true
+      selector:
+        text:
+    subject_did:
+      required: true
+      selector:
+        text:
+    permissions:
+      required: true
+      selector:
+        text:
+          multiple: true
+    role:
+      default: guest
+      selector:
+        text:
+    duration_hours:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 8760
+          mode: box
+revoke_credential:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ha_didcomm
+    credential_exchange_id:
+      required: true
+      selector:
+        text:
+
+revoke_connection:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ha_didcomm
+    connection_id:
+      required: true
+      selector:
+        text:

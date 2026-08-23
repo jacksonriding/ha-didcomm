@@ -40,8 +40,10 @@ available. Please allow a reasonable remediation period before publication.
 ## Deployment expectations
 
 - Expose only the documented TLS proxy port.
-- Keep ACA-Py's Admin API, gateway webhook, and owner mutation routes private.
-- Use unique, randomly generated wallet and Admin API keys.
+- Keep ACA-Py's Admin API, gateway webhook, and legacy `/admin` mutation routes
+  private. Publish `/owner/` only through the documented TLS proxy.
+- Use unique, randomly generated wallet, Admin API, and owner API secrets. The
+  owner token must contain at least 32 characters.
 - Use a trusted TLS certificate whose hostname matches the public endpoint.
 - Back up `/data` or the named data volumes securely; they contain identity
   material and authorization state.

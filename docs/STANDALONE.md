@@ -10,18 +10,20 @@ development-only remote user agent is not included.
 Copy-Item .env.standalone.example .env.standalone
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 python -c "import secrets; print(secrets.token_urlsafe(32))"
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Put the generated values in `ACAPY_WALLET_KEY` and `ACAPY_ADMIN_API_KEY`.
+Put the generated values in `ACAPY_WALLET_KEY`, `ACAPY_ADMIN_API_KEY`, and
+`OWNER_API_TOKEN`.
 Provide a trusted TLS certificate and private key, then set `TLS_CERT_PATH` and
 `TLS_KEY_PATH` to their host paths. The certificate must cover the hostname in
 `ACAPY_PUBLIC_ENDPOINT`, which must be an HTTPS URL. Also provide the Home
 Assistant URL and a long-lived access token.
 
-The TLS proxy is the only published service. It sends `/status` and `/health`
-to the gateway's read-only API and sends all other traffic to ACA-Py's DIDComm
-listener. ACA-Py's Admin API, webhook receiver, and owner mutation routes stay
-inside the Compose network.
+The TLS proxy is the only published service. It sends `/status`, `/health`,
+and bearer-authenticated `/owner/` requests to the gateway and sends all other
+traffic to ACA-Py's DIDComm listener. ACA-Py's Admin API, webhook receiver,
+and legacy mutation routes stay inside the Compose network.
 
 Create the home issuer DID on first setup:
 
@@ -43,7 +45,14 @@ docker compose --env-file .env.standalone -f compose.standalone.yml up -d --buil
 docker compose --env-file .env.standalone -f compose.standalone.yml ps
 ```
 
-## Owner commands
+## Owner controls
+
+Install the optional Home Assistant custom integration and configure it with
+the public HTTPS URL and `OWNER_API_TOKEN`. Its administrator-only actions are
+the supported owner workflow; see the
+[integration guide](HOME_ASSISTANT_INTEGRATION.md).
+
+The CLI remains available for troubleshooting:
 
 ```powershell
 docker compose --env-file .env.standalone -f compose.standalone.yml `
@@ -63,8 +72,9 @@ authorization records. Back them up before upgrades and never run
 `docker compose down --volumes` unless you intend to erase the deployment.
 
 Only the TLS proxy is published, on port 8443 by default. ACA-Py's
-API-key-protected Admin API and the gateway owner API remain accessible solely
-within the Compose network. Set `TLS_PORT` in `.env.standalone` to change the
+API-key-protected Admin API and legacy gateway mutation API remain accessible
+solely within the Compose network. The published owner API requires its
+separate bearer token. Set `TLS_PORT` in `.env.standalone` to change the
 host-side port and keep `ACAPY_PUBLIC_ENDPOINT` in sync.
 
 The optional [Home Assistant custom integration](HOME_ASSISTANT_INTEGRATION.md)
