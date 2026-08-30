@@ -14,16 +14,20 @@ long-lived Home Assistant access token is required.
 - `keyfile`: Matching private-key filename from Home Assistant's `/ssl` share.
 - `owner_api_token`: Random token of at least 32 characters used only by Home
   Assistant's administrator-only owner actions. Generate one with
-  `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+  `python -c "import secrets; print(secrets.token_hex(32))"`.
 
 The ACA-Py wallet, generated issuer DID, wallet key, and gateway credential
 database are stored under `/data` and included in cold Home Assistant backups.
+The generated wallet key is persistent state: preserve it with `/data` and do
+not replace it during an upgrade or restore.
 
-Port 8000 terminates TLS and carries DIDComm traffic plus the sanitized
-`/status` and `/health` routes plus the bearer-authenticated `/owner/` routes
-used by the optional Home Assistant custom integration. ACA-Py's
-API-key-protected Admin API, inbound transport, status service, legacy owner
-routes, and gateway webhook listener bind to loopback inside the app container.
+Port 8000 terminates TLS and carries DIDComm traffic plus `/health`, a
+minimized public `/status` summary, and the bearer-authenticated `/owner/`
+routes used by the optional Home Assistant custom integration. Detailed
+connection, DID, credential exchange, and permission metadata is returned only
+from `/owner/status`. ACA-Py's API-key-protected Admin API, inbound transport,
+status service, legacy owner routes, and gateway webhook listener bind to
+loopback inside the app container.
 
 ## Installation from this repository
 
@@ -43,7 +47,8 @@ volume. See the [multi-home guide](../docs/MULTI_HOME.md).
 The app refuses to start when `public_endpoint` is not HTTPS or when its
 certificate files are missing. ACA-Py's Admin API key is generated once,
 stored under `/data`, and reused across upgrades. An absent or weak owner token
-leaves status monitoring available but disables every `/owner/` operation.
+leaves only minimized status monitoring available and disables every `/owner/`
+operation.
 
 Before a release, follow the Home Assistant OS fresh-install, upgrade, and
 backup/restore procedure in the

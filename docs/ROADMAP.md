@@ -173,7 +173,10 @@ model before recommending use beyond experimentation.
       VC claim with an accurately documented connection-capability model
 - [ ] Scope grants by Home Assistant service/action as well as entity
 - [ ] Add replay and duplicate-command protection
-- [ ] Authenticate or further minimize the externally reachable status API
+- [x] Reject equivalent active grants before sending a replacement VC to the
+      remote wallet
+- [x] Minimize the public status API and require owner authentication for
+      connection, DID, credential, and permission details
 - [ ] Document abuse cases, trust boundaries, key compromise, backup exposure,
       and recovery in a threat model
 - [ ] Obtain an independent security review and resolve high-severity findings

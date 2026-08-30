@@ -18,6 +18,7 @@ Credentials use JSON-LD (ld_proof) so no ledger/schema registration is
 needed: the @context is defined inline, and DIDs are did:key identities
 (issuer = the home's did:key, subject = the remote party's did:key).
 """
+from collections import Counter
 from contextlib import closing
 from datetime import datetime, timezone
 from fnmatch import fnmatch
@@ -123,6 +124,92 @@ def remember_issued(
                 """,
                 (connection_id, credential_exchange_id, encoded, created_at),
             )
+
+
+def _grant_scope(credential: dict) -> tuple[str, str, tuple[str, ...]] | None:
+    subject = credential.get("credentialSubject")
+    if not isinstance(subject, dict):
+        return None
+    subject_did = subject.get("id")
+    role = subject.get("role")
+    permissions = subject.get("permissions")
+    if (
+        not isinstance(subject_did, str)
+        or not isinstance(role, str)
+        or not isinstance(permissions, list)
+        or not all(
+            isinstance(permission, str) and permission for permission in permissions
+        )
+    ):
+        return None
+    return subject_did, role, tuple(sorted(set(permissions)))
+
+
+def remember_issued_superseding(
+    connection_id: str,
+    credential: dict,
+    credential_exchange_id: str,
+) -> int:
+    """Store a grant and atomically revoke older equivalent active grants."""
+    target = _grant_scope(credential)
+    if (
+        not connection_id
+        or not credential_exchange_id
+        or target is None
+        or not _has_expected_scope(credential)
+    ):
+        raise ValueError("credential does not contain a valid grant scope")
+
+    initialize_store()
+    encoded = json.dumps(credential, separators=(",", ":"), sort_keys=True)
+    created_at = datetime.now(timezone.utc).isoformat()
+    with closing(_connect()) as connection:
+        with connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO issued_credentials (
+                    connection_id, credential_exchange_id, credential_json, created_at
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (connection_id, credential_exchange_id, encoded, created_at),
+            )
+            rows = connection.execute(
+                """
+                SELECT id, credential_json
+                FROM issued_credentials
+                WHERE connection_id = ?
+                  AND id != ?
+                  AND revoked_at IS NULL
+                ORDER BY id DESC
+                """,
+                (connection_id, cursor.lastrowid),
+            ).fetchall()
+
+            superseded_ids = []
+            for record_id, existing_encoded in rows:
+                try:
+                    existing = json.loads(existing_encoded)
+                except (TypeError, json.JSONDecodeError):
+                    continue
+                if (
+                    isinstance(existing, dict)
+                    and _grant_scope(existing) == target
+                    and _has_expected_scope(existing)
+                    and not _is_expired(existing)
+                ):
+                    superseded_ids.append(record_id)
+
+            if superseded_ids:
+                revoked_at = datetime.now(timezone.utc).isoformat()
+                connection.executemany(
+                    """
+                    UPDATE issued_credentials
+                    SET revoked_at = COALESCE(revoked_at, ?)
+                    WHERE id = ?
+                    """,
+                    [(revoked_at, record_id) for record_id in superseded_ids],
+                )
+    return len(superseded_ids)
 
 
 def _issued_for_connection(connection_id: str) -> list[dict]:
@@ -260,6 +347,32 @@ def list_issued() -> list[dict]:
             }
         )
     return records
+
+
+def count_issued_by_state() -> dict[str, int]:
+    """Return aggregate credential state counts without exposing identifiers."""
+    counts = Counter(record["state"] for record in list_issued())
+    return dict(sorted(counts.items()))
+
+
+def find_equivalent_active_grant(
+    connection_id: str,
+    subject_did: str,
+    role: str,
+    permissions: list[str],
+) -> dict | None:
+    """Return the newest active grant with the same normalized authorization scope."""
+    target_permissions = tuple(sorted(set(permissions)))
+    for record in list_issued():
+        if (
+            record["state"] == "active"
+            and record["connection_id"] == connection_id
+            and record["subject_did"] == subject_did
+            and record["role"] == role
+            and tuple(sorted(set(record["permissions"]))) == target_permissions
+        ):
+            return record
+    return None
 
 
 def _is_expired(credential: dict) -> bool:

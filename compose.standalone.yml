@@ -31,7 +31,7 @@ services:
       --no-ledger
       --wallet-type askar
       --wallet-name home
-      --wallet-key ${ACAPY_WALLET_KEY:?Set ACAPY_WALLET_KEY in .env.standalone}
+      --wallet-key=${ACAPY_WALLET_KEY:?Set ACAPY_WALLET_KEY in .env.standalone}
       --auto-provision
       --log-level ${LOG_LEVEL:-info}
     volumes:

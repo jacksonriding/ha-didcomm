@@ -79,11 +79,12 @@ in Home Assistant.
 
 There's no static allowlist anymore. Instead, the home issues a
 `SmartHomeAccessCredential` (a JSON-LD/`ld_proof` verifiable credential, no
-ledger needed) to a connection, and the gateway checks that credential's
-`permissions`/`expirationDate` before executing a command. See
-`gateway/src/ha_didcomm/credentials.py` for the credential shape and check
-logic, and `docs/ROADMAP.md` for a known limitation (live Present Proof
-possession checks aren't wired up yet — see below).
+ledger needed) to a connection. The gateway authorizes commands from its
+issuer-side record of that credential and checks `permissions` and
+`expirationDate`; it does not ask the sender to prove possession on each
+command. The subject DID, role, and delivered VC are therefore audit metadata
+in this version. See `gateway/src/ha_didcomm/credentials.py` for the credential
+shape and `docs/ROADMAP.md` for the deferred live-proof work.
 
 1. Both agents need a stable `did:key` identity (separate from their
    pairwise connection DID) for issuing/holding JSON-LD credentials:
@@ -119,6 +120,10 @@ restarts. Docker Compose keeps the database in the `gateway-data` named
 volume. For a non-Compose deployment, set `CREDENTIAL_STORE_PATH` to the
 desired database location (the default is `data/credentials.sqlite3`). Back
 up that file as part of the gateway's application data.
+
+Deleting the delivered VC from a remote wallet does not revoke issuer-side
+access. If a controller wallet or connection is compromised, revoke the
+credential or the entire connection at the home.
 
 ### Revoking access
 

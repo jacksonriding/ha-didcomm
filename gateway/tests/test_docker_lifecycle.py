@@ -7,6 +7,12 @@ from scripts import docker_lifecycle_test as lifecycle
 
 
 class DockerLifecycleTests(unittest.TestCase):
+    def test_standalone_wallet_key_uses_equals_form(self):
+        compose = lifecycle.COMPOSE_FILE.read_text(encoding="utf-8")
+
+        self.assertIn("--wallet-key=${ACAPY_WALLET_KEY", compose)
+        self.assertNotIn("--wallet-key ${ACAPY_WALLET_KEY", compose)
+
     def test_write_environment_is_deterministic(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "gateway.env"
@@ -44,17 +50,35 @@ class DockerLifecycleTests(unittest.TestCase):
         self.assertIn("test-wallet:/source:ro", command)
 
     @patch("scripts.docker_lifecycle_test.run")
-    def test_restore_creates_volume_before_extracting(self, run):
+    def test_restore_extracts_into_compose_created_volume(self, run):
         lifecycle.restore_volume(
             "test-wallet", Path("/tmp/test-backup"), "wallet.tar.gz"
         )
 
-        self.assertEqual(run.call_count, 2)
-        self.assertEqual(
-            run.call_args_list[0].args[0],
-            ["docker", "volume", "create", "test-wallet"],
+        run.assert_called_once()
+        self.assertIn("test-wallet:/restore", run.call_args.args[0])
+
+    @patch("scripts.docker_lifecycle_test.run")
+    def test_assert_compose_volume_accepts_expected_labels(self, run):
+        run.return_value.stdout = (
+            '{"com.docker.compose.project":"test-project",'
+            '"com.docker.compose.volume":"acapy-wallet"}\n'
         )
-        self.assertIn("test-wallet:/restore", run.call_args_list[1].args[0])
+
+        lifecycle.assert_compose_volume(
+            "test-wallet", "test-project", "acapy-wallet"
+        )
+
+    @patch("scripts.docker_lifecycle_test.run")
+    def test_assert_compose_volume_rejects_unlabelled_volume(self, run):
+        run.return_value.stdout = "{}\n"
+
+        with self.assertRaisesRegex(
+            lifecycle.LifecycleFailure, "Compose-managed volume"
+        ):
+            lifecycle.assert_compose_volume(
+                "test-wallet", "test-project", "acapy-wallet"
+            )
 
 
 if __name__ == "__main__":

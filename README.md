@@ -43,7 +43,7 @@ Remote Agent (user/guest)
 
 The gateway is a small Python service that:
 1. Receives ACA-Py webhook events (new connections, messages, credential issuance)
-2. Enforces authorization policy (verifiable credentials issued per connection)
+2. Enforces issuer-side authorization records associated with each connection
 3. Translates authorized commands into Home Assistant REST API calls
 
 ## Status
@@ -52,6 +52,11 @@ Authorization, revocation, onboarding, JSON-RPC commands, and experimental
 Home Assistant packaging are implemented. See [the roadmap](docs/ROADMAP.md)
 for the current milestone and the known limitation around live
 credential-possession proofs.
+
+At present, the delivered credential and its subject DID are audit metadata;
+each command is authorized from active issuer-side records associated with the
+DIDComm connection. Anyone controlling that controller wallet and connection
+can exercise its active scopes until the home revokes or expires them.
 
 This is experimental software, not a production security boundary. In
 particular, do not rely on it as the only protection for locks, alarms, garage

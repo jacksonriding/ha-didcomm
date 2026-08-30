@@ -61,8 +61,10 @@ gateway's HTTPS status URL. The gateway issuer DID namespaces entity unique IDs,
 and the config entry title uses the gateway's `home_id`, so connections and
 credentials from different homes remain distinct.
 
-The integration remains read-only. Invitations, issuance, and revocation are
-currently owner CLI operations.
+With an owner API token, the integration exposes administrator-only invitation,
+issuance, and revocation actions. Entries without a token receive only the
+minimized public status summary and do not expose connection or credential
+entities.
 
 ## Security boundary
 
@@ -70,4 +72,5 @@ Multi-home support does not federate trust between homes. Every gateway makes
 its own authorization decision from its own issuer-scoped records. Live
 credential-possession proof is still deferred as documented in the roadmap;
 the current check remains bound to the pairwise connection on which that home
-issued the credential.
+issued the credential. The subject DID and delivered VC are metadata rather
+than a per-command proof binding.

@@ -30,7 +30,11 @@ jobs:
       - name: Check component versions
         run: python scripts/check_versions.py
       - name: Run gateway tests
-        run: python -m pytest
+        run: >-
+          python -m pytest
+          --cov=ha_didcomm
+          --cov-report=term
+          --cov-fail-under=80
       - name: Compile Python sources
         run: python -m compileall -q gateway/src custom_components
 

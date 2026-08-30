@@ -20,7 +20,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Keep version-one entries read-only until an owner token is added."""
+    """Keep version-one entries summary-only until an owner token is added."""
     if entry.version == 1:
         hass.config_entries.async_update_entry(entry, version=2)
     return True

@@ -17,12 +17,14 @@ file:
 
 ```powershell
 Copy-Item .env.controller.example .env.controller
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+python -c "import secrets; print(secrets.token_hex(32))"
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 Put the generated secrets in `CONTROLLER_WALLET_KEY` and
-`CONTROLLER_ADMIN_API_KEY`. Set `CONTROLLER_PUBLIC_ENDPOINT` to an address the
+`CONTROLLER_ADMIN_API_KEY`. The wallet key is passed to ACA-Py as a single
+argument, so an existing strong value that starts with `-` is also safe. Set
+`CONTROLLER_PUBLIC_ENDPOINT` to an address the
 home gateway can reach, normally the controller computer's fixed LAN address:
 
 ```text
@@ -48,7 +50,22 @@ docker compose --env-file .env.controller -f compose.controller.yml run --rm con
 ```
 
 Keep the printed `did:key` value for the issuance step. Re-running the command
-returns the same identity from the persistent wallet.
+returns the same identity. The selection is saved in the `controller-data`
+SQLite store and is checked against the persistent wallet every time. An empty
+wallet creates and saves one DID; a wallet with one existing DID adopts it.
+The command fails closed if a saved DID is missing or an unconfigured wallet
+contains multiple `did:key` identities.
+
+During an intentional recovery, select one DID that already exists in the
+wallet and persist that choice with either:
+
+```powershell
+docker compose --env-file .env.controller -f compose.controller.yml run --rm controller identity --did "did:key:..."
+```
+
+or `CONTROLLER_HOLDER_DID=did:key:...` in `.env.controller`. A selector never
+creates the requested DID. Remove the environment selector after the choice is
+saved so subsequent wallet drift is detected.
 
 ## Connect and receive access
 
@@ -58,12 +75,24 @@ On the home gateway, create a single-use invitation:
 docker compose --env-file .env.standalone -f compose.standalone.yml run --rm gateway python -m ha_didcomm.cli invite --label "My home"
 ```
 
-On the controller computer, pass the printed invitation URL as one quoted
-argument:
+On the controller computer, the safest route is to save either the raw
+invitation URL, JSON response, or copied Home Assistant action response in a
+private temporary file and pipe it over standard input. This keeps the
+single-use invitation out of the process argument list:
+
+```powershell
+Get-Content -Raw .\invitation.txt | docker compose --env-file .env.controller -f compose.controller.yml run --rm -T controller connect --stdin
+Remove-Item .\invitation.txt
+```
+
+The original quoted positional form remains available for compatibility:
 
 ```powershell
 docker compose --env-file .env.controller -f compose.controller.yml run --rm controller connect "<invitation_url>"
 ```
+
+Input must contain exactly one valid `oob` or `_oob` invitation. Ambiguous or
+malformed input is rejected without printing its contents.
 
 After a few seconds, list connections on both machines. Connection IDs are
 pairwise records, so the home-side and controller-side IDs are deliberately
@@ -126,5 +155,6 @@ To remove access, use the home gateway's `revoke-credential` or
 
 The `controller-wallet` volume contains the controller's keys, connections,
 and received credentials. The `controller-data` volume contains command
-replies. Back up the wallet volume if this identity matters. Do not run
-`docker compose down --volumes` unless you intend to delete it.
+replies and the selected holder DID. Back up both volumes together if this
+identity matters. Do not run `docker compose down --volumes` unless you intend
+to delete them.

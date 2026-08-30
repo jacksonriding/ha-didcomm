@@ -7,6 +7,14 @@
   post-restore owner operations.
 - Document repeatable standalone and Home Assistant OS validation procedures,
   including the identity and authorization state that must survive.
+- Minimize the public `/status` response and move detailed connection,
+  credential, DID, and permission metadata behind owner authentication at
+  `/owner/status`.
+- Reject duplicate active grants for the same connection, subject, role, and
+  permission scope before ACA-Py mints another credential.
+- Harden reference-controller onboarding by preserving the wallet DID,
+  accepting copied Home Assistant action responses, ignoring `.env.controller`,
+  and using wallet-key argument forms that tolerate generated secrets.
 
 ## 0.0.10
 
