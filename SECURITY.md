@@ -9,7 +9,9 @@ medical equipment, or other safety-critical devices.
 
 The current authorization design persistently associates issuer-side
 credential records with DIDComm connections. It does not yet require a fresh
-proof of credential possession for each command. See the known limitation in
+proof of credential possession for each command, so the credential subject DID
+is audit metadata rather than a per-command proof binding. Protect controller
+wallets and connection state accordingly. See the known limitation in
 [the roadmap](docs/ROADMAP.md).
 
 Only the latest code on the `main` branch currently receives security fixes.
@@ -48,3 +50,6 @@ available. Please allow a reasonable remediation period before publication.
 - Back up `/data` or the named data volumes securely; they contain identity
   material and authorization state.
 - Grant narrow entity patterns with short expiries and revoke unused access.
+  Reissuing the same connection, subject DID, role, and permission set
+  is rejected while an equivalent grant remains active. Revoke it before an
+  intentional replacement; broader or different grants remain independent.

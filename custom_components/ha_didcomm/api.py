@@ -24,6 +24,10 @@ class GatewayNotFoundError(GatewayApiError):
     """Raised when an owner mutation target does not exist."""
 
 
+class GatewayConflictError(GatewayApiError):
+    """Raised when an owner mutation conflicts with active gateway state."""
+
+
 class GatewayClient:
     """Small asynchronous client backed by Home Assistant's shared session."""
 
@@ -38,10 +42,27 @@ class GatewayClient:
         self._owner_api_token = owner_api_token
 
     async def async_get_status(self) -> dict[str, Any]:
+        path = "/owner/status" if self._owner_api_token else "/status"
+        headers = (
+            {"Authorization": f"Bearer {self._owner_api_token}"}
+            if self._owner_api_token
+            else None
+        )
         try:
             async with self._session.get(
-                f"{self.base_url}/status", timeout=10
+                f"{self.base_url}{path}", headers=headers, timeout=10
             ) as response:
+                if response.status == 401:
+                    raise GatewayAuthError("The gateway rejected the owner token")
+                if response.status == 503:
+                    try:
+                        detail = (await response.json()).get("detail")
+                    except (ValueError, AttributeError):
+                        detail = None
+                    if detail == "Owner API is not configured":
+                        raise GatewayOwnerNotConfiguredError(
+                            "The gateway owner API is not configured"
+                        )
                 response.raise_for_status()
                 payload = await response.json()
         except (ClientError, TimeoutError, ValueError) as error:
@@ -80,6 +101,10 @@ class GatewayClient:
                 if response.status == 404:
                     raise GatewayNotFoundError(
                         "The requested gateway record was not found"
+                    )
+                if response.status == 409:
+                    raise GatewayConflictError(
+                        "An equivalent active gateway grant already exists"
                     )
                 if response.status == 503:
                     try:

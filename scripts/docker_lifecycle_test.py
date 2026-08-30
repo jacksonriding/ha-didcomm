@@ -215,7 +215,6 @@ def archive_volume(volume: str, archive_directory: Path, filename: str) -> Path:
 
 
 def restore_volume(volume: str, archive_directory: Path, filename: str) -> None:
-    run(["docker", "volume", "create", volume])
     run(
         [
             "docker",
@@ -235,6 +234,31 @@ def restore_volume(volume: str, archive_directory: Path, filename: str) -> None:
     )
 
 
+def assert_compose_volume(volume: str, project: str, logical_name: str) -> None:
+    """Fail unless Compose created the restore target with expected labels."""
+    result = run(
+        [
+            "docker",
+            "volume",
+            "inspect",
+            "--format",
+            "{{json .Labels}}",
+            volume,
+        ]
+    )
+    labels = json.loads(result.stdout)
+    expected = {
+        "com.docker.compose.project": project,
+        "com.docker.compose.volume": logical_name,
+    }
+    if not isinstance(labels, dict) or any(
+        labels.get(key) != value for key, value in expected.items()
+    ):
+        raise LifecycleFailure(
+            f"restore target is not the expected Compose-managed volume: {volume}"
+        )
+
+
 def assert_persisted(
     compose: list[str],
     environment: dict[str, str],
@@ -245,7 +269,7 @@ def assert_persisted(
     wait_for_json(f"{public_url}/owner/health", bearer_token=owner_token)
     if issuer not in wallet_dids(compose, environment):
         raise LifecycleFailure("issuer DID did not survive the lifecycle operation")
-    status = request_json(f"{public_url}/status")
+    status = request_json(f"{public_url}/owner/status", bearer_token=owner_token)
     if status.get("instance_id") != issuer:
         raise LifecycleFailure("gateway instance ID changed after lifecycle operation")
     if credential_state(status) != "active":
@@ -403,6 +427,9 @@ def main() -> int:
 
             print("Deleting and restoring the deployment volumes...")
             run([*compose, "down", "--volumes", "--remove-orphans"], env=environment)
+            run([*compose, "create"], env=environment)
+            assert_compose_volume(wallet_volume, project, "acapy-wallet")
+            assert_compose_volume(gateway_volume, project, "gateway-data")
             restore_volume(wallet_volume, backup_directory, "acapy-wallet.tar.gz")
             restore_volume(gateway_volume, backup_directory, "gateway-data.tar.gz")
             run(
@@ -426,7 +453,9 @@ def main() -> int:
                 body={},
                 bearer_token=owner_token,
             )
-            restored_status = request_json(f"{public_url}/status")
+            restored_status = request_json(
+                f"{public_url}/owner/status", bearer_token=owner_token
+            )
             if credential_state(restored_status) != "revoked":
                 raise LifecycleFailure("post-restore credential revocation failed")
 

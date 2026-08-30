@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.controller
 .env.standalone
 gateway/.env
 gateway/data/
@@ -16,3 +17,4 @@ Thumbs.db
 .idea/
 *.log
 .pytest_cache/
+.coverage

@@ -37,7 +37,7 @@ class CredentialRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     connection_id: str = Field(min_length=1)
-    subject_did: str = Field(min_length=1)
+    subject_did: str = Field(pattern=r"^did:key:\S+$")
     permissions: list[str] = Field(min_length=1)
     role: str = Field(default="guest", min_length=1, max_length=128)
     duration_hours: int = Field(ge=1, le=8760)
@@ -77,9 +77,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/status")
-async def status() -> dict:
-    """Return sanitized connection and credential state without mutation routes."""
+async def _detailed_status() -> dict:
     try:
         raw_connections = await acapy.list_connections()
     except (httpx.HTTPError, ValueError) as error:
@@ -117,6 +115,27 @@ async def status() -> dict:
         "connections": connections,
         "credentials": credentials.list_issued(),
     }
+
+
+@app.get("/status")
+async def status() -> dict:
+    """Return operational state without exposing DIDComm or credential details."""
+    details = await _detailed_status()
+    return {
+        "status": "ok",
+        "instance_id": details["instance_id"],
+        "home_id": details["home_id"],
+        "connections": [],
+        "credentials": [],
+        "connection_count": len(details["connections"]),
+        "credential_counts": credentials.count_issued_by_state(),
+    }
+
+
+@app.get("/owner/status", dependencies=[Depends(require_owner)])
+async def owner_status() -> dict:
+    """Return detailed owner-facing connection and credential state."""
+    return await _detailed_status()
 
 
 @app.get("/owner/health", dependencies=[Depends(require_owner)])
@@ -157,6 +176,11 @@ async def issue_credential(request: CredentialRequest) -> dict:
             permissions=request.permissions,
             expires=expires,
         )
+    except owner.EquivalentActiveGrantError as error:
+        raise HTTPException(
+            status_code=409,
+            detail="An equivalent active grant already exists",
+        ) from error
     except (httpx.HTTPError, ValueError) as error:
         raise HTTPException(
             status_code=503, detail="Credential issuance failed"

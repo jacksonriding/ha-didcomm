@@ -1,4 +1,5 @@
 from contextlib import closing
+from concurrent.futures import ThreadPoolExecutor
 import json
 import sqlite3
 import tempfile
@@ -55,6 +56,88 @@ class CredentialStoreTests(unittest.TestCase):
         self.assertTrue(credentials.is_authorised("connection-1", "light.kitchen"))
         self.assertFalse(credentials.is_authorised("connection-1", "switch.kitchen"))
         self.assertFalse(credentials.is_authorised("connection-2", "light.kitchen"))
+
+    def test_remember_superseding_keeps_one_equivalent_active_grant(self):
+        first = self.credential(["switch.guest_*", "light.guest_*"])
+        replacement = self.credential(
+            ["light.guest_*", "switch.guest_*", "light.guest_*"]
+        )
+
+        credentials.remember_issued_superseding(
+            "connection-1", first, "exchange-1"
+        )
+        credentials.remember_issued_superseding(
+            "connection-1", replacement, "exchange-2"
+        )
+
+        records = {record["id"]: record for record in credentials.list_issued()}
+        self.assertEqual(records["exchange-1"]["state"], "revoked")
+        self.assertEqual(records["exchange-2"]["state"], "active")
+        self.assertEqual(
+            sum(record["state"] == "active" for record in records.values()),
+            1,
+        )
+
+    def test_superseding_does_not_merge_distinct_grants(self):
+        credentials.remember_issued_superseding(
+            "connection-1", self.credential(["light.*"]), "exchange-1"
+        )
+        different_role = self.credential(["light.*"])
+        different_role["credentialSubject"]["role"] = "resident"
+        credentials.remember_issued_superseding(
+            "connection-1", different_role, "exchange-2"
+        )
+        credentials.remember_issued_superseding(
+            "connection-2", self.credential(["light.*"]), "exchange-3"
+        )
+
+        records = credentials.list_issued()
+        self.assertEqual(
+            sum(record["state"] == "active" for record in records),
+            3,
+        )
+
+    def test_concurrent_equivalent_grants_leave_one_active_record(self):
+        grants = [
+            (self.credential(["light.*"]), f"exchange-{index}")
+            for index in range(6)
+        ]
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [
+                executor.submit(
+                    credentials.remember_issued_superseding,
+                    "connection-1",
+                    credential,
+                    exchange_id,
+                )
+                for credential, exchange_id in grants
+            ]
+            for future in futures:
+                future.result()
+
+        records = credentials.list_issued()
+        self.assertEqual(len(records), 6)
+        self.assertEqual(
+            sum(record["state"] == "active" for record in records),
+            1,
+        )
+
+    def test_invalid_superseding_credential_does_not_revoke_existing_grant(self):
+        credentials.remember_issued_superseding(
+            "connection-1", self.credential(["light.*"]), "exchange-1"
+        )
+        replacement = self.credential(["light.*"])
+        replacement["issuer"] = "did:key:wrong-home"
+
+        with self.assertRaisesRegex(ValueError, "grant scope"):
+            credentials.remember_issued_superseding(
+                "connection-1", replacement, "exchange-2"
+            )
+
+        records = {record["id"]: record for record in credentials.list_issued()}
+        self.assertEqual(records["exchange-1"]["state"], "active")
+        self.assertNotIn("exchange-2", records)
 
     def test_credentials_remain_home_and_issuer_scoped(self):
         valid = self.credential(["light.*"])

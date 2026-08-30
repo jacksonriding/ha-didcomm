@@ -2,8 +2,8 @@
 
 The `ha_didcomm` custom integration shows each DIDComm connection and issued
 access credential as an entity in Home Assistant. It polls the gateway's
-read-only status API every 30 seconds and provides administrator-only actions
-for invitation, issuance, expiry, and revocation.
+owner status API every 30 seconds and provides administrator-only actions for
+invitation, issuance, expiry, and revocation.
 
 ## Install
 
@@ -63,6 +63,11 @@ Every action requires `config_entry_id`, which selects the home gateway. Find
 connection IDs, subject DIDs, and credential exchange IDs in the integration's
 sensor attributes. For example, in **Developer tools > Actions**:
 
+The subject must be the controller wallet's `did:key`, not either side's
+connection ID. In this release it is recorded as audit metadata; command
+authorization is bound to the active issuer-side grant for the DIDComm
+connection and does not perform a fresh possession proof.
+
 ```yaml
 action: ha_didcomm.issue_credential
 data:
@@ -77,14 +82,18 @@ data:
 ```
 
 Request response data when creating an invitation or issuing a credential to
-use `invitation_url`, `cred_ex_id`, or `expires_at` in an automation. Entries
-upgraded from integration version 0.2 remain read-only until reconfigured with
-an owner token.
+use `invitation_url`, `cred_ex_id`, or `expires_at` in an automation. Repeated
+issuance of the same connection, subject DID, role, and permission set is
+rejected while the existing grant remains active, so accidental double-clicks
+do not mint another VC. Revoke the existing grant before intentionally issuing
+a replacement. Entries upgraded from integration version 0.2 remain
+summary-only until reconfigured with an owner token.
 
-The TLS proxy exposes sanitized `/status` and `/health` routes plus the
-bearer-authenticated `/owner/` surface alongside the DIDComm listener.
-Connection identifiers and access scopes are still operational metadata.
-Webhook, legacy mutation, and ACA-Py Admin routes remain private.
+The TLS proxy exposes `/health`, a minimized public `/status` summary, and
+the bearer-authenticated `/owner/` surface alongside the DIDComm listener.
+Detailed connection identifiers, DIDs, credential exchange IDs, and access
+scopes are returned only from `/owner/status`. Webhook, legacy mutation, and
+ACA-Py Admin routes remain private.
 
 ## Development
 

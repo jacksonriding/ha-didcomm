@@ -26,10 +26,44 @@ def load_options(path: Path = DATA_DIR / "options.json") -> dict:
 def persistent_secret(path: Path) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
-    value = secrets.token_urlsafe(32)
+    value = secrets.token_hex(32)
     path.write_text(value, encoding="utf-8")
     path.chmod(0o600)
     return value
+
+
+def acapy_start_command(
+    options: dict, wallet_key: str, log_level: str
+) -> list[str]:
+    """Build the ACA-Py command without exposing option-like wallet keys."""
+    return [
+        "aca-py",
+        "start",
+        "--label",
+        "ha-didcomm",
+        "--inbound-transport",
+        "http",
+        "127.0.0.1",
+        "8000",
+        "--outbound-transport",
+        "http",
+        "--admin",
+        "127.0.0.1",
+        "8021",
+        "--webhook-url",
+        "http://127.0.0.1:8080",
+        "--endpoint",
+        options["public_endpoint"],
+        "--no-ledger",
+        "--wallet-type",
+        "askar",
+        "--wallet-name",
+        "home",
+        f"--wallet-key={wallet_key}",
+        "--auto-provision",
+        "--log-level",
+        log_level,
+    ]
 
 
 def tls_file(filename: str, directory: Path = Path("/ssl")) -> Path:
@@ -145,35 +179,7 @@ def main() -> int:
     )
     wallet_key = persistent_secret(DATA_DIR / "wallet-key")
     admin_api_key = persistent_secret(DATA_DIR / "admin-api-key")
-    acapy_command = [
-        "aca-py",
-        "start",
-        "--label",
-        "ha-didcomm",
-        "--inbound-transport",
-        "http",
-        "127.0.0.1",
-        "8000",
-        "--outbound-transport",
-        "http",
-        "--admin",
-        "127.0.0.1",
-        "8021",
-        "--webhook-url",
-        "http://127.0.0.1:8080",
-        "--endpoint",
-        options["public_endpoint"],
-        "--no-ledger",
-        "--wallet-type",
-        "askar",
-        "--wallet-name",
-        "home",
-        "--wallet-key",
-        wallet_key,
-        "--auto-provision",
-        "--log-level",
-        log_level,
-    ]
+    acapy_command = acapy_start_command(options, wallet_key, log_level)
     acapy_environment = os.environ.copy()
     acapy_environment["ACAPY_HOME"] = str(DATA_DIR / "acapy")
     acapy_environment["ACAPY_ADMIN_API_KEY"] = admin_api_key

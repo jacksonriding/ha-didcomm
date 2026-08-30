@@ -1,14 +1,17 @@
 """Reference remote controller backed by a private ACA-Py Admin API."""
 import argparse
 import asyncio
+import html
 from collections.abc import Sequence
 from contextlib import closing
 from datetime import datetime, timezone
 import base64
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
+import sys
 import uuid
 from urllib.parse import parse_qs, urlparse
 
@@ -30,6 +33,16 @@ CREATE TABLE IF NOT EXISTS rpc_responses (
 );
 """
 
+_SETTINGS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS controller_settings (
+    name TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"""
+
+_HOLDER_DID_SETTING = "holder_did"
+_MAX_INVITATION_INPUT_BYTES = 128 * 1024
+
 
 def _headers() -> dict[str, str]:
     headers = {"Content-Type": "application/json"}
@@ -42,17 +55,70 @@ def _connect_store() -> sqlite3.Connection:
     path = Path(RESPONSE_STORE_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=5)
+    path.chmod(0o600)
     connection.execute("PRAGMA busy_timeout = 5000")
     connection.execute(_SCHEMA)
+    connection.execute(_SETTINGS_SCHEMA)
     return connection
+
+
+def _oob_values(candidate: str) -> list[str]:
+    parsed = urlparse(candidate)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return []
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    return [value for name in ("_oob", "oob") for value in query.get(name, [])]
+
+
+def _has_one_oob_parameter(candidate: str) -> bool:
+    values = _oob_values(candidate)
+    return len(values) == 1 and bool(values[0])
+
+
+def extract_invitation_url(value: str) -> str:
+    """Extract a raw OOB URL from CLI input, JSON, or HA action response text."""
+    text = html.unescape(value.strip()).replace("\\/", "/")
+    if not text:
+        raise ValueError("invitation input is empty")
+    if not re.search(r"\s", text) and _has_one_oob_parameter(text):
+        return text
+
+    candidates: set[str] = set()
+    try:
+        decoded = json.loads(text)
+    except json.JSONDecodeError:
+        decoded = None
+    if isinstance(decoded, dict):
+        url = decoded.get("invitation_url")
+        if isinstance(url, str) and _has_one_oob_parameter(url):
+            candidates.add(url)
+
+    for match in re.finditer(r'"invitation_url"\s*:\s*"((?:\\.|[^"\\])*)"', text):
+        try:
+            candidate = json.loads(f'"{match.group(1)}"')
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, str) and _has_one_oob_parameter(candidate):
+            candidates.add(candidate)
+
+    for match in re.finditer(r"https?://[^\s\"'<>]+", text):
+        candidate = match.group(0).rstrip(")}],.;")
+        if _has_one_oob_parameter(candidate):
+            candidates.add(candidate)
+
+    if len(candidates) > 1:
+        raise ValueError("invitation input is ambiguous")
+    if candidates:
+        return candidates.pop()
+    raise ValueError("invitation URL has no _oob or oob parameter")
 
 
 def decode_invitation_url(invitation_url: str) -> dict:
     """Decode an Aries OOB invitation URL into its JSON object."""
-    query = parse_qs(urlparse(invitation_url).query)
-    values = query.get("_oob") or query.get("oob")
-    if not values or not values[0]:
-        raise ValueError("invitation URL has no _oob or oob parameter")
+    invitation_url = extract_invitation_url(invitation_url)
+    values = _oob_values(invitation_url)
+    if len(values) != 1 or not values[0]:
+        raise ValueError("invitation URL must contain exactly one _oob or oob parameter")
     encoded = values[0]
     try:
         decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
@@ -80,17 +146,68 @@ async def accept_invitation(invitation_url: str) -> dict:
     return result
 
 
-async def holder_did() -> str:
-    """Return the first stable did:key in the wallet, creating one if needed."""
+def _get_setting(name: str) -> str | None:
+    with closing(_connect_store()) as connection:
+        row = connection.execute(
+            "SELECT value FROM controller_settings WHERE name = ?", (name,)
+        ).fetchone()
+    return str(row[0]) if row else None
+
+
+def _set_setting(name: str, value: str) -> None:
+    with closing(_connect_store()) as connection:
+        with connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO controller_settings VALUES (?, ?)",
+                (name, value),
+            )
+
+
+async def holder_did(selected_did: str | None = None) -> str:
+    """Return the persisted did:key identity, creating one only for an empty wallet."""
+    selected_did = selected_did or os.getenv("CONTROLLER_HOLDER_DID", "")
+    selected_did = selected_did.strip() or None
+    if selected_did is not None and not selected_did.startswith("did:key:"):
+        raise ValueError("controller identity selector must be a did:key")
+
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{ADMIN_URL}/wallet/did", headers=_headers())
         response.raise_for_status()
         results = response.json().get("results", [])
-        if isinstance(results, list):
-            for record in results:
-                did = record.get("did") if isinstance(record, dict) else None
-                if isinstance(did, str) and did.startswith("did:key:"):
-                    return did
+        if not isinstance(results, list):
+            raise ValueError("ACA-Py did not return wallet DID records")
+        key_dids = sorted(
+            {
+                did
+                for record in results
+                if isinstance(record, dict)
+                if isinstance((did := record.get("did")), str)
+                if did.startswith("did:key:")
+            }
+        )
+
+        if selected_did is not None:
+            if selected_did not in key_dids:
+                raise ValueError("selected controller identity is not present in the wallet")
+            _set_setting(_HOLDER_DID_SETTING, selected_did)
+            return selected_did
+
+        saved_did = _get_setting(_HOLDER_DID_SETTING)
+        if saved_did is not None:
+            if saved_did not in key_dids:
+                raise ValueError(
+                    "saved controller identity is not present in the wallet; "
+                    "restore the wallet or select an existing did:key explicitly"
+                )
+            return saved_did
+
+        if len(key_dids) == 1:
+            _set_setting(_HOLDER_DID_SETTING, key_dids[0])
+            return key_dids[0]
+        if len(key_dids) > 1:
+            raise ValueError(
+                "wallet contains multiple did:key identities; select one explicitly"
+            )
 
         response = await client.post(
             f"{ADMIN_URL}/wallet/did/create",
@@ -102,6 +219,7 @@ async def holder_did() -> str:
     did = result.get("did") if isinstance(result, dict) else None
     if not isinstance(did, str) or not did.startswith("did:key:"):
         raise ValueError("ACA-Py did not return a did:key identity")
+    _set_setting(_HOLDER_DID_SETTING, did)
     return did
 
 
@@ -210,8 +328,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     commands = parser.add_subparsers(dest="command", required=True)
     connect = commands.add_parser("connect", help="accept an OOB invitation URL")
-    connect.add_argument("invitation_url")
-    commands.add_parser("identity", help="show or create the credential holder DID")
+    connect.add_argument("invitation_url", nargs="*")
+    connect.add_argument(
+        "--stdin", action="store_true", help="read the invitation from standard input"
+    )
+    identity = commands.add_parser(
+        "identity", help="show or create the credential holder DID"
+    )
+    identity.add_argument(
+        "--did", help="select an existing did:key when the wallet contains more than one"
+    )
     commands.add_parser("connections", help="list home connections")
     call = commands.add_parser("call", help="call an allowed Home Assistant service")
     call.add_argument("connection_id")
@@ -226,11 +352,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "connect":
-            result = asyncio.run(accept_invitation(args.invitation_url))
+            if args.stdin and args.invitation_url:
+                raise ValueError("use either positional invitation input or --stdin, not both")
+            if args.stdin:
+                invitation_input = sys.stdin.read(_MAX_INVITATION_INPUT_BYTES + 1)
+                if len(invitation_input.encode()) > _MAX_INVITATION_INPUT_BYTES:
+                    raise ValueError("invitation input is too large")
+            else:
+                invitation_input = " ".join(args.invitation_url)
+            result = asyncio.run(accept_invitation(invitation_input))
             record_id = result.get("connection_id") or result.get("oob_id") or "accepted"
             print(f"Connection started: {record_id}")
         elif args.command == "identity":
-            print(asyncio.run(holder_did()))
+            print(asyncio.run(holder_did(args.did)))
         elif args.command == "connections":
             _print_connections(asyncio.run(list_connections()))
         elif args.command == "call":

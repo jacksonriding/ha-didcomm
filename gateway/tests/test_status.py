@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 from fastapi.testclient import TestClient
-from ha_didcomm import config, credentials, status
+from ha_didcomm import config, credentials, owner, status
 
 
 class StatusApiTests(unittest.TestCase):
@@ -28,7 +28,7 @@ class StatusApiTests(unittest.TestCase):
             self.addCleanup(active_patch.stop)
 
     @patch("ha_didcomm.status.acapy.list_connections", new_callable=AsyncMock)
-    def test_status_returns_sanitized_connections_and_credentials(
+    def test_public_status_redacts_connections_and_credentials(
         self, list_connections
     ):
         list_connections.return_value = [
@@ -50,6 +50,43 @@ class StatusApiTests(unittest.TestCase):
 
         with TestClient(status.app) as client:
             response = client.get("/status")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["instance_id"], "did:key:test-home")
+        self.assertEqual(body["connections"], [])
+        self.assertEqual(body["credentials"], [])
+        self.assertEqual(body["connection_count"], 1)
+        self.assertEqual(body["credential_counts"], {"active": 1})
+        self.assertNotIn("did:key:alice", response.text)
+        self.assertNotIn("exchange-1", response.text)
+
+    @patch("ha_didcomm.status.acapy.list_connections", new_callable=AsyncMock)
+    def test_owner_status_returns_sanitized_connections_and_credentials(
+        self, list_connections
+    ):
+        list_connections.return_value = [
+            {
+                "connection_id": "connection-1",
+                "state": "completed",
+                "their_label": "Alice",
+                "their_did": "did:peer:4alice",
+                "invitation_key": "must-not-leak",
+            }
+        ]
+        credential = credentials.build_credential(
+            "did:key:alice",
+            "did:key:test-home",
+            "guest",
+            ["light.guest_*"],
+        )
+        credentials.remember_issued("connection-1", credential, "exchange-1")
+
+        with TestClient(status.app) as client:
+            response = client.get(
+                "/owner/status",
+                headers={"Authorization": f"Bearer {'a' * 40}"},
+            )
 
         self.assertEqual(response.status_code, 200)
         body = response.json()
@@ -156,6 +193,27 @@ class StatusApiTests(unittest.TestCase):
             issue_credential.await_args.kwargs["expires"], response.json()["expires_at"]
         )
 
+    @patch("ha_didcomm.status.owner.issue_access_credential", new_callable=AsyncMock)
+    def test_owner_reports_duplicate_active_grant_as_conflict(self, issue_credential):
+        issue_credential.side_effect = owner.EquivalentActiveGrantError()
+
+        with TestClient(status.app) as client:
+            response = client.post(
+                "/owner/credentials",
+                headers={"Authorization": f"Bearer {'a' * 40}"},
+                json={
+                    "connection_id": "connection-1",
+                    "subject_did": "did:key:guest",
+                    "permissions": ["light.guest_*"],
+                    "duration_hours": 24,
+                },
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"], "An equivalent active grant already exists"
+        )
+
     def test_owner_rejects_invalid_credential_input(self):
         headers = {"Authorization": f"Bearer {'a' * 40}"}
         with TestClient(status.app) as client:
@@ -179,9 +237,20 @@ class StatusApiTests(unittest.TestCase):
                     "duration_hours": 8761,
                 },
             )
+            connection_id_as_subject = client.post(
+                "/owner/credentials",
+                headers=headers,
+                json={
+                    "connection_id": "connection-1",
+                    "subject_did": "1295f0cb-c24f-4056-a806-3c046eff46d1",
+                    "permissions": ["light.*"],
+                    "duration_hours": 24,
+                },
+            )
 
         self.assertEqual(empty_permissions.status_code, 422)
         self.assertEqual(excessive_duration.status_code, 422)
+        self.assertEqual(connection_id_as_subject.status_code, 422)
 
     @patch("ha_didcomm.status.credentials.revoke_credential")
     @patch("ha_didcomm.status.credentials.revoke_connection")

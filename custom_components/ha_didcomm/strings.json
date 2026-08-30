@@ -47,11 +47,11 @@
     },
     "issue_credential": {
       "name": "Issue credential",
-      "description": "Issue a scoped, expiring access credential to a connected agent.",
+      "description": "Issue a scoped, expiring issuer-side grant for a DIDComm connection.",
       "fields": {
         "config_entry_id": {"name": "Gateway", "description": "Gateway that will issue the credential."},
         "connection_id": {"name": "Connection ID", "description": "DIDComm connection receiving the credential."},
-        "subject_did": {"name": "Subject DID", "description": "Holder DID that will be named as the credential subject."},
+        "subject_did": {"name": "Subject DID", "description": "did:key identity recorded as credential metadata; command access is currently bound to the connection."},
         "permissions": {"name": "Permissions", "description": "Home Assistant entity ID patterns this credential permits."},
         "role": {"name": "Role", "description": "Role recorded in the credential."},
         "duration_hours": {"name": "Duration", "description": "Number of hours before the credential expires."}
@@ -79,6 +79,7 @@
     "owner_not_configured": {"message": "Owner controls are not configured. Reconfigure the integration with an owner token."},
     "invalid_owner_token": {"message": "The gateway rejected the configured owner token."},
     "record_not_found": {"message": "The requested credential or connection was not found."},
+    "active_grant_exists": {"message": "An equivalent active grant already exists. Revoke it before issuing a replacement."},
     "invalid_permissions": {"message": "At least one non-empty permission is required."},
     "owner_operation_failed": {"message": "The gateway could not complete the owner operation."}
   },

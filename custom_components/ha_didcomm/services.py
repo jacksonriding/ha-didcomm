@@ -19,6 +19,7 @@ from homeassistant.helpers.service import async_register_admin_service
 from .api import (
     GatewayApiError,
     GatewayAuthError,
+    GatewayConflictError,
     GatewayNotFoundError,
     GatewayOwnerNotConfiguredError,
 )
@@ -98,6 +99,10 @@ def _raise_action_error(error: GatewayApiError) -> None:
     if isinstance(error, GatewayNotFoundError):
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="record_not_found"
+        ) from error
+    if isinstance(error, GatewayConflictError):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="active_grant_exists"
         ) from error
     raise HomeAssistantError(
         translation_domain=DOMAIN, translation_key="owner_operation_failed"

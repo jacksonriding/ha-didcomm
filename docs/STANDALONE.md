@@ -8,22 +8,28 @@ development-only remote user agent is not included.
 
 ```powershell
 Copy-Item .env.standalone.example .env.standalone
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+python -c "import secrets; print(secrets.token_hex(32))"
+python -c "import secrets; print(secrets.token_hex(32))"
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 Put the generated values in `ACAPY_WALLET_KEY`, `ACAPY_ADMIN_API_KEY`, and
 `OWNER_API_TOKEN`.
+Generate these only for a fresh install. For an existing deployment, restore
+the original `.env.standalone` values: changing `ACAPY_WALLET_KEY` does not
+rotate the wallet and can make its existing identity inaccessible.
 Provide a trusted TLS certificate and private key, then set `TLS_CERT_PATH` and
 `TLS_KEY_PATH` to their host paths. The certificate must cover the hostname in
 `ACAPY_PUBLIC_ENDPOINT`, which must be an HTTPS URL. Also provide the Home
 Assistant URL and a long-lived access token.
 
-The TLS proxy is the only published service. It sends `/status`, `/health`,
-and bearer-authenticated `/owner/` requests to the gateway and sends all other
-traffic to ACA-Py's DIDComm listener. ACA-Py's Admin API, webhook receiver,
-and legacy mutation routes stay inside the Compose network.
+The TLS proxy is the only published service. It sends `/health`, public
+summary `/status`, and bearer-authenticated `/owner/` requests to the gateway
+and sends all other traffic to ACA-Py's DIDComm listener. Detailed connection
+IDs, peer DIDs, credential exchange IDs, subject DIDs, and permission scopes
+are available only through `/owner/status` with `OWNER_API_TOKEN`. ACA-Py's
+Admin API, webhook receiver, and legacy mutation routes stay inside the
+Compose network.
 
 Create the home issuer DID on first setup:
 
@@ -103,12 +109,13 @@ time.
 ### Restore
 
 Restore only into an empty deployment using the same wallet key, Admin API
-key, home ID, issuer DID, and owner token:
+key, home ID, issuer DID, and owner token. The first command below deliberately
+deletes the target project's current volumes, so verify the project and backup
+paths before running it:
 
 ```bash
-docker compose --env-file .env.standalone -f compose.standalone.yml down
-docker volume create ha-didcomm_acapy-wallet
-docker volume create ha-didcomm_gateway-data
+docker compose --env-file .env.standalone -f compose.standalone.yml down --volumes --remove-orphans
+docker compose --env-file .env.standalone -f compose.standalone.yml create --build
 docker run --rm -v ha-didcomm_acapy-wallet:/restore \
   -v "$backup_directory:/backup:ro" python:3.14-slim \
   tar -C /restore -xzf /backup/acapy-wallet.tar.gz
@@ -118,10 +125,14 @@ docker run --rm -v ha-didcomm_gateway-data:/restore \
 docker compose --env-file .env.standalone -f compose.standalone.yml up -d --build
 ```
 
-After an upgrade or restore, verify `/health`, confirm that `/status` reports
-the original `instance_id` and credential records, then perform a test owner
-operation. The automated rehearsal performs these checks destructively in a
-randomly named project without touching the normal volumes:
+Letting Compose create the stopped containers also creates the named volumes
+with Compose's normal project labels, which keeps future `docker compose`
+operations predictable.
+
+After an upgrade or restore, verify `/health`, confirm that `/owner/status`
+reports the original `instance_id` and credential records, then perform a test
+owner operation. The automated rehearsal performs these checks destructively in
+a randomly named project without touching the normal volumes:
 
 ```bash
 python3 scripts/docker_lifecycle_test.py
@@ -137,8 +148,8 @@ separate bearer token. Set `TLS_PORT` in `.env.standalone` to change the
 host-side port and keep `ACAPY_PUBLIC_ENDPOINT` in sync.
 
 The optional [Home Assistant custom integration](HOME_ASSISTANT_INTEGRATION.md)
-uses the same HTTPS URL as `ACAPY_PUBLIC_ENDPOINT`; the proxy routes its
-`/status` requests to the read-only API.
+uses the same HTTPS URL as `ACAPY_PUBLIC_ENDPOINT`; with an owner token
+configured, it polls `/owner/status` for detailed entity data.
 
 Continue with the [reference controller guide](CONTROLLER.md) to connect a
 second machine, issue it scoped access, and send a complete command round trip.

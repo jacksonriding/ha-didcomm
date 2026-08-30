@@ -19,8 +19,8 @@ The test creates unique project and volume names and then:
 3. force-replaces the ACA-Py, gateway, and TLS containers;
 4. checks that the issuer DID, gateway instance ID, and credential survive;
 5. stops the stateful services and archives both named volumes;
-6. deletes the deployment and its volumes, recreates empty volumes, and
-   restores the archives;
+6. deletes the deployment and its volumes, has Compose recreate correctly
+   labelled empty volumes, and restores the archives;
 7. starts the restored deployment and revokes the restored credential through
    the authenticated owner API; and
 8. removes the isolated project and volumes.
@@ -46,16 +46,16 @@ and date alongside the result.
   and owner token, and create a single-use invitation through
   `ha_didcomm.create_invitation`.
 - Connect a test controller, issue a short-lived test credential, and record
-  the `/status` `instance_id`, connection ID, credential exchange ID, state,
-  permissions, and expiry.
+  the `/owner/status` `instance_id`, connection ID, credential exchange ID,
+  state, permissions, and expiry.
 
 ### Upgrade
 
 - Create a Home Assistant backup before installing the candidate app version.
 - Install the candidate version without uninstalling the existing app or
   deleting its data.
-- Confirm the app starts and `/status` retains the recorded `instance_id`,
-  connection, and credential metadata.
+- Confirm the app starts and `/owner/status` retains the recorded
+  `instance_id`, connection, and credential metadata.
 - Confirm the existing owner token still authenticates and exercise a harmless
   permitted entity through the test controller.
 
@@ -67,12 +67,39 @@ and date alongside the result.
 - Restore that backup on the test installation, including the app and its
   configuration. Ensure the referenced TLS certificate files are also present
   in `/ssl`.
-- Start the restored app and confirm `/status` retains the exact issuer-backed
-  `instance_id`, connection ID, credential exchange ID, permission list,
-  expiry, and state.
+- Start the restored app and confirm `/owner/status` retains the exact
+  issuer-backed `instance_id`, connection ID, credential exchange ID,
+  permission list, expiry, and state.
 - Revoke the restored test credential through Home Assistant and confirm its
   sensor changes to `revoked` and the controller is denied immediately.
 - Restart Home Assistant once more and confirm the revoked state persists.
+
+## Recorded Home Assistant Container evidence
+
+A physical fresh-install exercise completed on 2026-08-29 with Home Assistant
+Container. This evidence is intentionally sanitized: it contains no tokens,
+wallet keys, invitations, connection identifiers, credential identifiers, or
+full DIDs.
+
+| Field | Result |
+| --- | --- |
+| Deployment | Home Assistant Container (Docker, no Supervisor) |
+| Home Assistant version | core-2026.8.1 |
+| Gateway version | 0.0.10 |
+| Integration version | 0.3.0 |
+| Architecture | amd64 / x86_64 |
+| Fresh install | Pass |
+| Upgrade | Not tested |
+| Backup and restore | Not tested |
+| Identity preserved across restore | Not tested |
+| Authorization and revocation | Pass during the fresh-install session |
+| Network | Private Tailscale Serve HTTPS endpoint |
+
+The exercise confirmed Home Assistant API reachability, completed DID exchange,
+permitted a scoped test switch operation, denied an out-of-scope entity, and
+denied the test credential after revocation. It does not validate Home
+Assistant OS/Supervisor installation, upgrade, or backup behavior, so the
+checklist above remains a release gate for the app distribution.
 
 ## Evidence record
 

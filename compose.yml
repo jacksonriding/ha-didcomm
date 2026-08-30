@@ -32,7 +32,7 @@ services:
       --no-ledger
       --wallet-type askar
       --wallet-name home
-      --wallet-key change-me-dev-only
+      --wallet-key=change-me-dev-only
       --auto-provision
       --log-level info
     ports:
@@ -76,7 +76,7 @@ services:
       --no-ledger
       --wallet-type askar
       --wallet-name user
-      --wallet-key change-me-dev-only
+      --wallet-key=change-me-dev-only
       --auto-provision
       --auto-respond-credential-offer
       --auto-store-credential

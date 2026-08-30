@@ -23,7 +23,7 @@ services:
       --no-ledger
       --wallet-type askar
       --wallet-name controller
-      --wallet-key ${CONTROLLER_WALLET_KEY:?Set CONTROLLER_WALLET_KEY}
+      --wallet-key=${CONTROLLER_WALLET_KEY:?Set CONTROLLER_WALLET_KEY}
       --auto-provision
       --auto-respond-credential-offer
       --auto-store-credential
@@ -69,6 +69,7 @@ services:
       CONTROLLER_ACAPY_ADMIN_URL: http://controller-agent:8031
       CONTROLLER_ACAPY_ADMIN_API_KEY: ${CONTROLLER_ADMIN_API_KEY:?Set CONTROLLER_ADMIN_API_KEY}
       CONTROLLER_RESPONSE_STORE_PATH: /data/responses.sqlite3
+      CONTROLLER_HOLDER_DID: ${CONTROLLER_HOLDER_DID:-}
     volumes:
       - controller-data:/data
     depends_on:
