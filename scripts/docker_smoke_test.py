@@ -378,6 +378,27 @@ def main() -> int:
             ):
                 raise SmokeFailure(f"unauthorized command was not denied: {denied}")
 
+            print("Removing the controller's credential and checking possession enforcement...")
+            delete_credential = (
+                "import json,os; from urllib.request import Request,urlopen; "
+                "base='http://127.0.0.1:8031'; "
+                "headers={'Content-Type':'application/json',"
+                "'X-API-Key':os.environ['ACAPY_ADMIN_API_KEY']}; "
+                "records=json.load(urlopen(Request(base+'/credentials/w3c',"
+                "data=b'{}',headers=headers,method='POST')))['results']; "
+                "assert len(records)==1, 'expected one stored access credential'; "
+                "urlopen(Request(base+'/credential/w3c/'+records[0]['record_id'],"
+                "headers=headers,method='DELETE')).read()"
+            )
+            run([*controller, "exec", "-T", "controller-agent", "python", "-c", delete_credential])
+            missing_result = controller_cli(
+                "call", controller_connection_id, "turn_on", PERMITTED_ENTITY,
+                allow_error=True,
+            )
+            missing = parse_rpc(missing_result.stdout)
+            if missing_result.returncode != 2 or missing.get("error", {}).get("code") != -32001:
+                raise SmokeFailure(f"command without wallet credential was not denied: {missing}")
+
             print("Revoking access and checking immediate enforcement...")
             request_json(
                 f"http://127.0.0.1:8090/owner/connections/{home_connection_id}/revoke",

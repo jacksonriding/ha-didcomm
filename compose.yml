@@ -1,6 +1,6 @@
 services:
   acapy-home-wallet-init:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     user: root
     entrypoint: ["sh", "-c"]
     command: ["chown -R 1001:1001 /wallet"]
@@ -9,7 +9,7 @@ services:
     restart: "no"
 
   acapy-user-wallet-init:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     user: root
     entrypoint: ["sh", "-c"]
     command: ["chown -R 1001:1001 /wallet"]
@@ -18,7 +18,7 @@ services:
     restart: "no"
 
   acapy-home:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     environment:
       ACAPY_ADMIN_API_KEY: change-me-home-admin
     command: >
@@ -63,7 +63,7 @@ services:
 
   # Represents the remote/user agent, for local dev/testing only.
   acapy-user:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     environment:
       ACAPY_ADMIN_API_KEY: change-me-user-admin
     command: >
@@ -80,6 +80,7 @@ services:
       --auto-provision
       --auto-respond-credential-offer
       --auto-store-credential
+      --auto-respond-presentation-request
       --log-level info
     ports:
       - "127.0.0.1:8010:8000" # DIDComm inbound (local development)

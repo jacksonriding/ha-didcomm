@@ -78,3 +78,35 @@ async def issue_credential(connection_id: str, credential: dict) -> dict:
         response = await client.post(url, json=body, headers=_headers())
         response.raise_for_status()
         return response.json()
+
+
+async def send_proof_request(body: dict) -> dict:
+    """Request and retain a DIF presentation for authoritative verification."""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{config.ACAPY_ADMIN_URL}/present-proof-2.0/send-request",
+            json=body,
+            headers=_headers(),
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def get_proof_record(pres_ex_id: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{config.ACAPY_ADMIN_URL}/present-proof-2.0/records/{pres_ex_id}",
+            headers=_headers(),
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def delete_proof_record(pres_ex_id: str) -> None:
+    async with httpx.AsyncClient() as client:
+        response = await client.delete(
+            f"{config.ACAPY_ADMIN_URL}/present-proof-2.0/records/{pres_ex_id}",
+            headers=_headers(),
+        )
+        if response.status_code != 404:
+            response.raise_for_status()

@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import html
+from fnmatch import fnmatch
 from collections.abc import Sequence
 from contextlib import closing
 from datetime import datetime, timezone
@@ -17,6 +18,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 from fastapi import FastAPI, Request
+
+from . import credentials, rpc
 
 
 ADMIN_URL = os.getenv("CONTROLLER_ACAPY_ADMIN_URL", "http://localhost:8031")
@@ -283,10 +286,109 @@ async def call_service(
         result = _get_response(request_id)
         if result is not None:
             return result
+        await _respond_to_command_proof(
+            connection_id, rpc.Request(request_id, action, entity_id)
+        )
         await asyncio.sleep(0.2)
     raise TimeoutError(
         "no reply received; check the connection, controller-inbox, and home logs"
     )
+
+
+async def _respond_to_command_proof(connection_id: str, command: rpc.Request) -> None:
+    """Answer only a proof request bound to this connection and outstanding call."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{ADMIN_URL}/present-proof-2.0/records",
+            params={"connection_id": connection_id, "role": "prover", "state": "request-received"},
+            headers=_headers(),
+        )
+        response.raise_for_status()
+        records = response.json().get("results")
+        if not isinstance(records, list):
+            raise ValueError("ACA-Py did not return presentation records")
+        for record in records:
+            if not isinstance(record, dict) or (
+                record.get("connection_id") != connection_id
+                or record.get("role") != "prover"
+                or record.get("state") != "request-received"
+            ):
+                continue
+            try:
+                definition = record["by_format"]["pres_request"]["dif"]["presentation_definition"]
+                if definition["id"] != rpc.proof_request_id(command):
+                    continue
+                pres_ex_id = record["pres_ex_id"]
+            except (KeyError, TypeError):
+                continue
+            if not isinstance(pres_ex_id, str) or not pres_ex_id:
+                continue
+            signer = await holder_did()
+            response = await client.get(
+                f"{ADMIN_URL}/present-proof-2.0/records/{pres_ex_id}/credentials",
+                params={"count": 1000},
+                headers=_headers(),
+            )
+            response.raise_for_status()
+            record_id = _select_proof_credential(response.json(), definition, signer, command.entity_id)
+            if record_id is None:
+                continue
+            response = await client.post(
+                f"{ADMIN_URL}/present-proof-2.0/records/{pres_ex_id}/send-presentation",
+                json={"dif": {
+                    "issuer_id": signer,
+                    "record_ids": {definition["input_descriptors"][0]["id"]: [record_id]},
+                }},
+                headers=_headers(),
+            )
+            response.raise_for_status()
+
+
+def _select_proof_credential(
+    candidates: list, definition: dict, signer: str, entity_id: str
+) -> str | None:
+    """Choose one requested home grant belonging to this wallet identity."""
+    try:
+        descriptors = definition["input_descriptors"]
+        if len(descriptors) != 1 or not descriptors[0]["id"].startswith("home-access:"):
+            return None
+        fingerprints = descriptors[0]["id"].removeprefix("home-access:").split(",")
+        fields = descriptors[0]["constraints"]["fields"]
+        if not isinstance(fields, list) or len(fields) != 4:
+            return None
+        if not isinstance(candidates, list):
+            return None
+        for candidate in candidates:
+            if not isinstance(candidate, dict) or not isinstance(candidate.get("record_id"), str):
+                continue
+            presented = {key: value for key, value in candidate.items() if key != "record_id"}
+            if credentials.credential_fingerprint(presented) not in fingerprints:
+                continue
+            subject = candidate.get("credentialSubject")
+            if not isinstance(subject, dict) or subject.get("id") != signer:
+                continue
+            permissions = subject.get("permissions")
+            if not isinstance(permissions, list) or not any(
+                isinstance(pattern, str) and fnmatch(entity_id, pattern) for pattern in permissions
+            ):
+                continue
+            values = {
+                "$.issuer": candidate.get("issuer"),
+                "$.credentialSubject.id": subject["id"],
+                "$.issuanceDate": candidate.get("issuanceDate"),
+                "$.credentialSubject.home": subject.get("home"),
+            }
+            if all(
+                field["path"] == [path]
+                and (field["filter"].get("const") == values[path]
+                     if "const" in field["filter"]
+                     else values[path] in field["filter"]["enum"])
+                for field, path in zip(fields, values)
+            ):
+                return candidate["record_id"]
+    except (KeyError, TypeError, AttributeError):
+        return None
+    return None
 
 
 app = FastAPI(title="ha-didcomm reference controller inbox")
@@ -343,7 +445,7 @@ def build_parser() -> argparse.ArgumentParser:
     call.add_argument("connection_id")
     call.add_argument("action")
     call.add_argument("entity_id")
-    call.add_argument("--timeout", type=float, default=15.0)
+    call.add_argument("--timeout", type=float, default=45.0)
     return parser
 
 

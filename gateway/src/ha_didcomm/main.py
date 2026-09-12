@@ -16,6 +16,7 @@ from . import config
 from . import credentials
 from . import home_assistant
 from . import owner
+from . import proofs
 from . import rpc
 
 logging.basicConfig(level=logging.INFO)
@@ -112,6 +113,21 @@ async def _handle_basic_message(payload: dict) -> None:
         await _send_rpc_response(connection_id, rpc.failure(error))
         return
 
+    if not proofs.claim_command(connection_id, request):
+        logger.warning("Ignoring duplicate command or full proof queue")
+        return
+    try:
+        presented = await proofs.request_proof(connection_id, request)
+        if not credentials.is_presented_authorised(connection_id, request.entity_id, presented):
+            error = rpc.RpcError(-32001, "Credential possession proof required", request.request_id)
+            await _send_rpc_response(connection_id, rpc.failure(error))
+            return
+        await _execute_proven_command(connection_id, request)
+    finally:
+        proofs.finish_command(connection_id, request)
+
+
+async def _execute_proven_command(connection_id: str, request: rpc.Request) -> None:
     domain = request.entity_id.split(".", 1)[0]
     try:
         await home_assistant.call_service(domain, request.action, request.entity_id)

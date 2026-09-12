@@ -1,5 +1,7 @@
 """Minimal JSON-RPC 2.0 command envelope for DIDComm Basic Messages."""
 import json
+import hashlib
+from uuid import UUID
 from dataclasses import dataclass
 
 
@@ -8,6 +10,17 @@ class Request:
     request_id: str | int
     action: str
     entity_id: str
+
+
+def proof_request_id(request: Request) -> str:
+    """Bind the presentation definition to the typed RPC id and exact command."""
+    encoded = json.dumps(
+        [request.request_id, request.action, request.entity_id],
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode()
+    # ACA-Py's DIF schema requires the UUID4 wire format, including for PD ids.
+    return str(UUID(bytes=hashlib.sha256(encoded).digest()[:16], version=4))
 
 
 class RpcError(ValueError):

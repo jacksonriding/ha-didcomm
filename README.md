@@ -43,20 +43,44 @@ Remote Agent (user/guest)
 
 The gateway is a small Python service that:
 1. Receives ACA-Py webhook events (new connections, messages, credential issuance)
-2. Enforces issuer-side authorization records associated with each connection
+2. Requires a fresh credential-possession proof and checks active local grants
 3. Translates authorized commands into Home Assistant REST API calls
 
 ## Status
 
 Authorization, revocation, onboarding, JSON-RPC commands, and experimental
-Home Assistant packaging are implemented. See [the roadmap](docs/ROADMAP.md)
-for the current milestone and the known limitation around live
-credential-possession proofs.
+Home Assistant packaging and per-command proof are implemented. Docker
+Container smoke passed for DID exchange, credential issuance, a fresh signed
+proof before an allowed HA call, and denial of disallowed, revoked, and
+missing-wallet-VC commands, with exact-fingerprint selection enabled. The full
+standalone lifecycle, app `0.0.12` Docker rebuild, and version/Compose checks
+also passed. Physical HA OS validation has not been performed. See
+[the roadmap](docs/ROADMAP.md) for remaining validation and release status.
 
-At present, the delivered credential and its subject DID are audit metadata;
-each command is authorized from active issuer-side records associated with the
-DIDComm connection. Anyone controlling that controller wallet and connection
-can exercise its active scopes until the home revokes or expires them.
+The per-command authorization flow requires a fresh ACA-Py Present Proof 2.0
+(PP2) DIF presentation using `Ed25519Signature2018` and a home/command-bound
+random challenge. The signed challenge incorporates a hash of `HOME_ID`, the
+home issuer, the command fingerprint, and a fresh random 256-bit nonce.
+ACA-Py drops `domain` during signing, so the request omits the optional domain;
+authorization does not rely on a signed or checked `proof.domain`.
+The gateway retrieves the authoritative proof record
+from ACA-Py's private Admin API and requires it to be verified and bound to
+the same connection and pending request. The presentation's signing
+verification method must belong to the credential's `did:key` subject, and
+the presented credential must match an exact active local grant, including
+expiry and revocation checks before dispatch.
+
+Persistent replay suppression retains typed JSON-RPC IDs for 24 hours; the
+gateway never retries Home Assistant dispatch after a crash. This does not
+add service/action permissions. The [reference controller](docs/CONTROLLER.md)
+explicitly selects the holder with `dif.issuer_id` and waits up to 45 seconds;
+the default proof timeout is 30 seconds. Other wallets must respond to PP2
+requests. The selected deployment pin is the official ACA-Py `py3.13-1.6.2rc0`
+image containing PR #4217; the stable rolling tag still serves the old July 28
+registry image. See the [exact digest and rebuild instructions](docs/GATEWAY.md#aca-py-deployment-pin-coordinator)
+for every Compose deployment and the bundled app. Upgrade both the home and
+controller, preserving wallet volumes, keys, and existing credentials. The pin
+is applied in all three Compose files and the app Dockerfile.
 
 This is experimental software, not a production security boundary. In
 particular, do not rely on it as the only protection for locks, alarms, garage

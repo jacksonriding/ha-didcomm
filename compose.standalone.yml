@@ -1,6 +1,6 @@
 services:
   wallet-init:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     environment:
       ACAPY_PUBLIC_ENDPOINT: ${ACAPY_PUBLIC_ENDPOINT:?Set ACAPY_PUBLIC_ENDPOINT in .env.standalone}
     user: root
@@ -17,7 +17,7 @@ services:
     restart: "no"
 
   acapy:
-    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6-lts
+    image: ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa
     environment:
       ACAPY_ADMIN_API_KEY: ${ACAPY_ADMIN_API_KEY:?Set ACAPY_ADMIN_API_KEY in .env.standalone}
     command: >

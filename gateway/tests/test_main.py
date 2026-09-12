@@ -55,8 +55,10 @@ class RevocationEndpointTests(unittest.TestCase):
 
     @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
     @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)
-    def test_rpc_command_executes_and_replies(self, call_service, send_message):
+    @patch("ha_didcomm.main.proofs.request_proof", new_callable=AsyncMock)
+    def test_rpc_command_executes_and_replies(self, request_proof, call_service, send_message):
         credentials.remember_issued("connection-1", self.credential, "exchange-1")
+        request_proof.return_value = self.credential
         request = {
             "jsonrpc": "2.0",
             "id": "request-1",
@@ -77,6 +79,24 @@ class RevocationEndpointTests(unittest.TestCase):
         call_service.assert_awaited_once_with("light", "turn_on", "light.kitchen")
         response = json.loads(send_message.await_args.args[1])
         self.assertTrue(response["result"]["executed"])
+
+    @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.proofs.request_proof", new_callable=AsyncMock)
+    def test_issued_grant_without_proof_never_executes(self, request_proof, call_service, send_message):
+        credentials.remember_issued("connection-1", self.credential, "exchange-1")
+        request_proof.return_value = None
+        payload = {
+            "state": "received", "connection_id": "connection-1",
+            "content": json.dumps({"jsonrpc": "2.0", "id": "missing-proof",
+                "method": "homeassistant.call_service",
+                "params": {"action": "turn_on", "entity_id": "light.kitchen"}}),
+        }
+        asyncio.run(main._handle_basic_message(payload))
+        asyncio.run(main._handle_basic_message(payload))
+        call_service.assert_not_awaited()
+        request_proof.assert_awaited_once()
+        self.assertEqual(json.loads(send_message.await_args.args[1])["error"]["code"], -32001)
 
     @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
     @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)

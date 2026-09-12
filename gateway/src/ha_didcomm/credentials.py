@@ -4,15 +4,9 @@ Replaces the v0.0.2 static config/policies.yaml allowlist with real W3C
 verifiable credentials (JSON-LD, ld_proof), issued to a connection via
 ACA-Py's Issue Credential 2.0 protocol.
 
-Note on scope: this checks the credentials the home has issued to a
-connection (persisted locally in SQLite) rather than running a live
-Present Proof exchange asking the remote party to prove current possession.
-A first attempt at wiring up DIF Presentation Exchange proof-of-possession
-hit an ACA-Py bug in this version -- its DIF/LD-proof handler ignores the
-explicit issuer_id passed to /present-proof-2.0/records/{id}/send-presentation
-(it always re-derives the signing DID itself via is_holder_override=True,
-and that derivation doesn't reliably resolve did:key credential subjects).
-Live possession proof is deferred; see docs/ROADMAP.md.
+Issuer-side records remain the authority for scope, expiry, and revocation.
+The command handler additionally requires a fresh signed presentation through
+proofs.py, enabled by the upstream ACA-Py DIF holder-signing fix (#4196).
 
 Credentials use JSON-LD (ld_proof) so no ledger/schema registration is
 needed: the @context is defined inline, and DIDs are did:key identities
@@ -23,6 +17,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from fnmatch import fnmatch
 import json
+import hashlib
 from pathlib import Path
 import sqlite3
 
@@ -428,3 +423,44 @@ def is_authorised(connection_id: str, entity_id: str) -> bool:
         ):
             return True
     return False
+
+
+def is_presented_authorised(
+    connection_id: str, entity_id: str, presented: dict | None
+) -> bool:
+    """Authorize the exact presented grant after cryptographic verification.
+
+    A proof of a narrow grant must never unlock a different, broader grant.
+    Re-read active records here so revocation during the exchange is enforced.
+    """
+    if not isinstance(presented, dict):
+        return False
+    unsigned = {key: value for key, value in presented.items() if key != "proof"}
+    subject = unsigned.get("credentialSubject")
+    types = unsigned.get("type")
+    if (
+        not isinstance(subject, dict)
+        or not isinstance(types, list)
+        or CREDENTIAL_TYPE not in types
+        or not _has_expected_scope(unsigned)
+        or _is_expired(unsigned)
+    ):
+        return False
+    permissions = subject.get("permissions")
+    if not isinstance(permissions, list) or not any(
+        isinstance(pattern, str) and fnmatch(entity_id, pattern)
+        for pattern in permissions
+    ):
+        return False
+    return any(
+        unsigned == {key: value for key, value in stored.items() if key != "proof"}
+        for stored in _issued_for_connection(connection_id)
+    )
+
+
+def credential_fingerprint(credential: dict) -> str:
+    """Identify an exact issuance payload independently of its added signature."""
+    unsigned = {key: value for key, value in credential.items() if key != "proof"}
+    return hashlib.sha256(json.dumps(
+        unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode()).hexdigest()

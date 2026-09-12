@@ -296,8 +296,9 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(controller._get_response("missing"))
 
     @patch("ha_didcomm.controller.httpx.AsyncClient")
+    @patch("ha_didcomm.controller._respond_to_command_proof", new_callable=AsyncMock)
     async def test_call_service_sends_json_rpc_and_returns_matching_response(
-        self, client_type
+        self, respond_to_proof, client_type
     ):
         client = AsyncMock()
         client_type.return_value.__aenter__.return_value = client
