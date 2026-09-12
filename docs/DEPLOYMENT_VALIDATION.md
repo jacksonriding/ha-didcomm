@@ -98,8 +98,36 @@ full DIDs.
 The exercise confirmed Home Assistant API reachability, completed DID exchange,
 permitted a scoped test switch operation, denied an out-of-scope entity, and
 denied the test credential after revocation. It does not validate Home
-Assistant OS/Supervisor installation, upgrade, or backup behavior, so the
-checklist above remains a release gate for the app distribution.
+Assistant OS/Supervisor installation, upgrade, or backup behavior. The
+checklist above remains necessary before claiming support for those lifecycle
+operations. The experimental `v0.0.12` release is published with the recorded
+Container coverage; that publication does not claim separate Supervisor
+validation.
+
+## v0.0.12 release evidence
+
+[v0.0.12](https://github.com/jacksonriding/ha-didcomm/releases/tag/v0.0.12)
+was published on 2026-09-13 (Australia/Brisbane), targeting commit `a8a29c0`.
+All jobs in the [gateway CI run](https://github.com/jacksonriding/ha-didcomm/actions/runs/34724315679)
+and [Home Assistant integration validation](https://github.com/jacksonriding/ha-didcomm/actions/runs/34724315716)
+passed before publication.
+
+| Check | Result |
+| --- | --- |
+| Gateway tests on Python 3.12 and 3.13 | Pass in CI |
+| Local gateway tests on Python 3.14 | 285 passed; 90.10% coverage |
+| Home Assistant custom integration tests and validation | Pass in CI |
+| Real signed-proof command flow | Pass locally and in CI |
+| Missing wallet credential, disallowed entity, and revoked grant | Denied in Docker smoke test |
+| Standalone fresh install, replacement, backup, and restore | Pass locally and in CI |
+| Bundled app image build | Pass locally, app version 0.0.12 |
+| Compose and release-version checks | Pass |
+| Gateway dependency audit | No known vulnerabilities reported |
+| Separate physical HA OS/Supervisor lifecycle validation | Not established by these checks |
+
+These automated results complement the physical Container exercise above.
+They do not replace an independent security review or validate Home Assistant
+OS/Supervisor backup behavior.
 
 ## Evidence record
 

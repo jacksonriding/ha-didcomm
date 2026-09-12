@@ -1,11 +1,10 @@
 # Roadmap
 
-**Next app release: 0.0.12 (unreleased; release tag `v0.0.12` pending).**
-The Home Assistant app configuration version is now `0.0.12` so existing
-installations can receive the update. The changelog uses that version
-for release-check compatibility; this does not mean the release or tag has
-been published. The custom integration version is unchanged. Observed checks
-and remaining runtime validation are recorded below.
+**Released: [v0.0.12](https://github.com/jacksonriding/ha-didcomm/releases/tag/v0.0.12).**
+The experimental app release was published on 2026-09-13 (Australia/Brisbane)
+from commit `a8a29c0` after all release-commit CI checks passed. The app version
+is `0.0.12`; the independently versioned custom integration remains `0.3.0`.
+Observed checks and remaining platform validation are recorded below.
 
 Guiding principle: don't touch Home Assistant internals, don't touch ACA-Py
 internals. Compose them through their existing REST/webhook APIs from a small
@@ -171,7 +170,7 @@ PP2; the development `acapy-user` has
 
 ## v0.0.9 — Open-source foundation
 
-**Status: implementation complete; release pending.**
+**Status: released in v0.0.12.**
 
 - [x] Adopt an OSI-approved license (Apache-2.0)
 - [x] Add contribution, conduct, and responsible-disclosure policies
@@ -181,7 +180,7 @@ PP2; the development `acapy-user` has
       checklist
 - [x] Add automated dependency-update configuration
 - [x] Check gateway release metadata against its changelog and release tag
-- [ ] Publish the `v0.0.12` tag and GitHub release after CI passes
+- [x] Publish the `v0.0.12` tag and GitHub release after CI passes
 
 The Home Assistant app and custom integration are independently installable
 components and retain independent semantic versions. A repository release must
@@ -200,6 +199,9 @@ revoked guest command without needing to understand ACA-Py's Admin API.
       (`scripts/docker_smoke_test.py`)
 - [x] Provide Home Assistant owner controls for invitation, issuance, expiry,
       and revocation instead of requiring Docker CLI commands
+- [x] Record the physical Home Assistant Container fresh-install exercise on
+      2026-08-29, including authorization and revocation; see the
+      [deployment evidence](DEPLOYMENT_VALIDATION.md#recorded-home-assistant-container-evidence)
 - [ ] Test fresh installation, upgrade, backup, and restore on Home Assistant OS
       and standalone Container deployments
   - [x] Automate the destructive standalone lifecycle in an isolated Docker
