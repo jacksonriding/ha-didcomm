@@ -9,7 +9,7 @@ COPY src/ha_didcomm ./ha_didcomm
 
 CMD ["python", "-m", "ha_didcomm.serve"]
 
-FROM ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.6.2rc0@sha256:41bd97050a16040a549104bafc92636ee0739bb082f2af27b27b7a5c142ccdaa AS addon
+FROM ghcr.io/openwallet-foundation/acapy-agent:py3.13-1.7.0@sha256:988f2858867cfdb5b6de45101425be824dde3869f3810567226c8c6fb1b0c6c0 AS addon
 
 USER root
 WORKDIR /app/gateway
