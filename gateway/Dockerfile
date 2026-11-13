@@ -1,4 +1,4 @@
-FROM python:3.14-slim AS gateway
+FROM python:3.15-slim AS gateway
 
 WORKDIR /app
 
