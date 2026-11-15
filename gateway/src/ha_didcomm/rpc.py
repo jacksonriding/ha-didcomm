@@ -1,5 +1,6 @@
 """Minimal JSON-RPC 2.0 command envelope for DIDComm Basic Messages."""
 import json
+import re
 from dataclasses import dataclass
 
 
@@ -36,8 +37,11 @@ def parse_request(content: str) -> Request:
     entity_id = params.get("entity_id")
     if not isinstance(action, str) or not action or not isinstance(entity_id, str):
         raise RpcError(-32602, "action and entity_id are required", request_id)
-    if "." not in entity_id:
-        raise RpcError(-32602, "entity_id must include a domain", request_id)
+    # These identifiers become URL path segments in the Home Assistant client.
+    if re.fullmatch(r"[a-z0-9_]+", action) is None:
+        raise RpcError(-32602, "action must be a Home Assistant service name", request_id)
+    if re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", entity_id) is None:
+        raise RpcError(-32602, "entity_id must be a domain.object_id identifier", request_id)
     return Request(request_id, action, entity_id)
 
 

@@ -102,6 +102,31 @@ class RevocationEndpointTests(unittest.TestCase):
         response = json.loads(send_message.await_args.args[1])
         self.assertEqual(response["error"]["code"], -32001)
 
+    @patch("ha_didcomm.main.acapy.send_basic_message", new_callable=AsyncMock)
+    @patch("ha_didcomm.main.home_assistant.call_service", new_callable=AsyncMock)
+    def test_authorised_entity_cannot_change_the_service_url(self, call_service, send_message):
+        credentials.remember_issued("connection-1", self.credential, "exchange-1")
+        request = {
+            "jsonrpc": "2.0",
+            "id": "traversal-attempt",
+            "method": "homeassistant.call_service",
+            "params": {
+                "action": "../homeassistant/restart",
+                "entity_id": "light.kitchen",
+            },
+        }
+
+        asyncio.run(main._handle_basic_message({
+            "state": "received",
+            "connection_id": "connection-1",
+            "content": json.dumps(request),
+        }))
+
+        call_service.assert_not_awaited()
+        response = json.loads(send_message.await_args.args[1])
+        self.assertEqual(response["id"], "traversal-attempt")
+        self.assertEqual(response["error"]["code"], -32602)
+
 
 if __name__ == "__main__":
     unittest.main()
